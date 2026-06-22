@@ -1,0 +1,18 @@
+[Unit]
+Description=Hydan-Labs Auth + Metrics Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/hydan-auth
+ExecStart=/opt/hydan-auth/venv/bin/python /opt/hydan-auth/auth.py
+Restart=always
+RestartSec=3
+Environment=HYDAN_ADMIN_USER=admin
+Environment=HYDAN_ADMIN_PASS=hydan2025
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
