@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hydan - Labs | Inteligência Artificial Inovadora</title>
+    <meta name="description" content="Hydan - Labs: o laboratório de inteligência artificial que está redesenhando o futuro. Inovação, performance e visão em um só lugar.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ff2d8b'/%3E%3Cstop offset='1' stop-color='%23ff7eb6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='%230a0a0a'/%3E%3Cpath d='M30 25h8v18h24V25h8v50h-8V50H38v25h-8z' fill='url(%23g)'/%3E%3C/svg%3E">
+</head>
+<body>
+    <!-- Canvas de partículas de fundo -->
+    <canvas id="particles"></canvas>
+
+    <!-- Overlay de gradientes -->
+    <div class="gradient-overlay"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#hero" class="nav-logo">
+                <!-- Logo SVG -->
+                <svg class="logo-mark" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#ff2d8b"/>
+                            <stop offset="100%" stop-color="#ff7eb6"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M28 22h9v22h26V22h9v56h-9V52H37v26h-9z" fill="url(#logoGrad)"/>
+                    <circle cx="50" cy="12" r="3" fill="#ff7eb6" opacity="0.9"/>
+                    <circle cx="14" cy="50" r="2.5" fill="#ff2d8b" opacity="0.7"/>
+                    <circle cx="86" cy="50" r="2.5" fill="#ff2d8b" opacity="0.7"/>
+                </svg>
+                <span class="logo-text">Hydan<span class="logo-divider">-</span><span class="logo-labs">Labs</span></span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#about">Sobre</a></li>
+                <li><a href="#features">Recursos</a></li>
+                <li><a href="#vision">Visão</a></li>
+                <li><a href="#contact" class="nav-cta">Contato</a></li>
+            </ul>
+            <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="hero">
+        <div class="hero-content">
+            <div class="hero-badge reveal">
+                <span class="badge-dot"></span>
+                <span>Inovando o futuro da IA</span>
+            </div>
+            <h1 class="hero-title reveal">
+                Bem-vindo à<br>
+                <span class="gradient-text">Hydan - Labs</span>
+            </h1>
+            <p class="hero-subtitle reveal">
+                Um laboratório de inteligência artificial onde a inovação encontra a performance.
+                Construímos sistemas que pensam, aprendem e transformam ideias em realidade.
+            </p>
+            <div class="hero-cta reveal">
+                <a href="#about" class="btn btn-primary">
+                    <span>Explorar</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </a>
+                <a href="#contact" class="btn btn-ghost">Fale Conosco</a>
+            </div>
+        </div>
+
+        <!-- Elemento visual flutuante -->
+        <div class="hero-visual reveal">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-3"></div>
+            <div class="core-ring">
+                <div class="core-center">
+                    <svg width="80" height="80" viewBox="0 0 100 100" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="coreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#ff2d8b"/>
+                                <stop offset="100%" stop-color="#ff7eb6"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M28 22h9v22h26V22h9v56h-9V52H37v26h-9z" fill="url(#coreGrad)"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="scroll-indicator">
+            <span>Role para descobrir</span>
+            <div class="scroll-line"></div>
+        </div>
+    </section>
+
+    <!-- Stats -->
+    <section class="stats reveal">
+        <div class="stat-item">
+            <div class="stat-number" data-target="100" data-suffix="%">0</div>
+            <div class="stat-label">Inovação</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+            <div class="stat-number" data-target="24" data-suffix="/7">0</div>
+            <div class="stat-label">Disponibilidade</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+            <div class="stat-number" data-target="∞" data-suffix="">0</div>
+            <div class="stat-label">Possibilidades</div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about section" id="about">
+        <div class="section-header reveal">
+            <span class="section-tag">// SOBRE NÓS</span>
+            <h2 class="section-title">O núcleo da <span class="gradient-text">Hydan</span></h2>
+        </div>
+        <div class="about-grid">
+            <div class="about-card glass reveal">
+                <div class="card-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V18a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-3.3A6.9 6.9 0 0 0 19 9a7 7 0 0 0-7-7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                </div>
+                <h3>Inteligência</h3>
+                <p>Modelos avançados que processam, entendem e geram conteúdo com precisão extraordinária.</p>
+            </div>
+            <div class="about-card glass reveal">
+                <div class="card-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                </div>
+                <h3>Performance</h3>
+                <p>Arquitetura otimizada para entregar respostas rápidas sem comprometer a qualidade.</p>
+            </div>
+            <div class="about-card glass reveal">
+                <div class="card-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" stroke="currentColor" stroke-width="1.8"/></svg>
+                </div>
+                <h3>Conexão</h3>
+                <p>Uma IA que se adapta ao seu contexto e aprende continuamente com cada interação.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features section" id="features">
+        <div class="section-header reveal">
+            <span class="section-tag">// RECURSOS</span>
+            <h2 class="section-title">Tecnologia que <span class="gradient-text">impressiona</span></h2>
+            <p class="section-subtitle">Cada detalhe foi pensado para oferecer uma experiência fluida, inteligente e poderosa.</p>
+        </div>
+        <div class="features-list">
+            <div class="feature-row reveal">
+                <div class="feature-number">01</div>
+                <div class="feature-content">
+                    <h3>Processamento Neural</h3>
+                    <p>Redes profundas treinadas para compreender nuances, contexto e intenção em qualquer entrada.</p>
+                </div>
+                <div class="feature-glow"></div>
+            </div>
+            <div class="feature-row reveal">
+                <div class="feature-number">02</div>
+                <div class="feature-content">
+                    <h3>Aprendizado Contínuo</h3>
+                    <p>A IA evolui constantemente, refinando suas respostas com base em novas informações.</p>
+                </div>
+                <div class="feature-glow"></div>
+            </div>
+            <div class="feature-row reveal">
+                <div class="feature-number">03</div>
+                <div class="feature-content">
+                    <h3>Interface Intuitiva</h3>
+                    <p>Design limpo e responsivo, feito para que a tecnologia sirva às pessoas sem fricção.</p>
+                </div>
+                <div class="feature-glow"></div>
+            </div>
+            <div class="feature-row reveal">
+                <div class="feature-number">04</div>
+                <div class="feature-content">
+                    <h3>Privacidade Primeiro</h3>
+                    <p>Seus dados permanecem protegidos com criptografia de ponta a ponta em todo o fluxo.</p>
+                </div>
+                <div class="feature-glow"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Vision Section -->
+    <section class="vision section" id="vision">
+        <div class="vision-container reveal">
+            <span class="section-tag">// NOSSA VISÃO</span>
+            <h2 class="vision-title">"Não estamos apenas construindo uma IA.<br>Estamos <span class="gradient-text">desenhando o amanhã</span>."</h2>
+            <p class="vision-text">A Hydan - Labs nasceu da convicção de que a inteligência artificial deve ser acessível, ética e verdadeiramente útil. Cada linha de código carrega nosso compromisso com um futuro mais inteligente.</p>
+        </div>
+    </section>
+
+    <!-- CTA / Contact -->
+    <section class="contact section" id="contact">
+        <div class="contact-card glass reveal">
+            <h2 class="contact-title">Pronto para o <span class="gradient-text">futuro</span>?</h2>
+            <p class="contact-text">Vamos construir algo extraordinário juntos. A Hydan está esperando por você.</p>
+            <a href="mailto:contato@hydanlabs.com" class="btn btn-primary btn-large">
+                <span>Iniciar Conversa</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-logo">
+                <svg class="logo-mark small" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="footerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#ff2d8b"/>
+                            <stop offset="100%" stop-color="#ff7eb6"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M28 22h9v22h26V22h9v56h-9V52H37v26h-9z" fill="url(#footerGrad)"/>
+                </svg>
+                <span>Hydan - Labs</span>
+            </div>
+            <p class="footer-tagline">Inteligência que desenha o futuro.</p>
+            <div class="footer-divider"></div>
+            <p class="footer-copy">© <span id="year"></span> Hydan - Labs. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
