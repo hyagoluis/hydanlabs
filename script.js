@@ -20,11 +20,24 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showToast = (msg, type = '') => {
-        const toast = document.getElementById('toast');
-        toast.textContent = msg;
+        const container = document.getElementById('toastContainer');
+        const icons = {
+            success: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 4 12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+            error: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        };
+        const toast = document.createElement('div');
         toast.className = 'toast show ' + type;
-        clearTimeout(toast._t);
-        toast._t = setTimeout(() => toast.classList.remove('show'), 3000);
+        toast.innerHTML = `<span class="toast-icon">${icons[type] || icons.success}</span><span>${msg}</span>`;
+        container.appendChild(toast);
+
+        // Limitar a 3 toasts visíveis
+        const toasts = container.querySelectorAll('.toast');
+        if (toasts.length > 3) toasts[0].remove();
+
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 350);
+        }, 4000);
     };
 
     const formatBytes = (bytes) => {
@@ -251,6 +264,66 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     checkStatus();
     setInterval(checkStatus, 30000);
+
+    /* ============================================================
+       6B. MODELS DASHBOARD (Ollama models from /status)
+       ============================================================ */
+    const modelsGrid = document.getElementById('modelsGrid');
+    const modelsEmpty = document.getElementById('modelsEmpty');
+
+    const loadModels = async () => {
+        try {
+            const controller = new AbortController();
+            const t = setTimeout(() => controller.abort(), 5000);
+            const res = await fetch('/status', { signal: controller.signal });
+            clearTimeout(t);
+            if (!res.ok) throw new Error();
+
+            const data = await res.json();
+            const models = (data && data.models) ? data.models : [];
+
+            if (models.length === 0) {
+                modelsGrid.style.display = 'none';
+                modelsEmpty.style.display = '';
+                return;
+            }
+
+            modelsEmpty.style.display = 'none';
+            modelsGrid.style.display = '';
+            modelsGrid.innerHTML = models.map(m => {
+                const name = m.name || 'desconhecido';
+                const size = m.size ? formatBytes(m.size) : '--';
+                const family = m.details && m.details.family ? m.details.family : '';
+                const quant = m.details && m.details.quantization_level ? m.details.quantization_level : '';
+                const paramParts = (m.details && m.details.parameter_size) ? m.details.parameter_size.split(' ') : [];
+                const paramLabel = paramParts.length === 2 ? `${paramParts[0]}${paramParts[1][0]}` : (m.details && m.details.parameter_size ? m.details.parameter_size : '');
+                return `
+                    <div class="model-card glass reveal active">
+                        <div class="model-card-header">
+                            <svg class="model-card-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2a4 4 0 0 0-4 4v1a4 4 0 0 0-3 6.7V18a4 4 0 0 0 4 4h6a4 4 0 0 0 4-4v-4.3A4 4 0 0 0 16 7V6a4 4 0 0 0-4-4z" stroke="currentColor" stroke-width="1.6"/></svg>
+                            <h3 class="model-card-name">${name}</h3>
+                        </div>
+                        <div class="model-card-meta">
+                            ${paramLabel ? `<span class="model-tag">${paramLabel}</span>` : ''}
+                            ${family ? `<span class="model-tag model-tag-family">${family}</span>` : ''}
+                            ${quant ? `<span class="model-tag model-tag-quant">${quant}</span>` : ''}
+                        </div>
+                        <div class="model-card-size">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M6 12h4M16 12h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                            <span>${size}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch {
+            modelsGrid.style.display = 'none';
+            modelsEmpty.style.display = '';
+            modelsEmpty.querySelector('p').textContent = 'Não foi possível carregar os modelos.';
+            modelsEmpty.querySelector('.models-empty-sub').textContent = 'Verifique se o Ollama está rodando no servidor.';
+        }
+    };
+    loadModels();
+    setInterval(loadModels, 60000);
 
     /* ============================================================
        7. PARTÍCULAS NO CANVAS
@@ -604,13 +677,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const addUserBtn = document.getElementById('addUserBtn');
-    addUserBtn.addEventListener('click', async () => {
-        const username = prompt('Nome do usuário:');
-        if (!username) return;
-        const password = prompt('Senha (mínimo 6 caracteres):');
-        if (!password) return;
-        const role = confirm('Este usuário será admin? OK = Admin, Cancelar = User') ? 'admin' : 'user';
+    const addUserModal = document.getElementById('addUserModal');
+    const addUserForm = document.getElementById('addUserForm');
+    const addUserError = document.getElementById('addUserError');
+    const addUserSubmit = document.getElementById('addUserSubmit');
+
+    addUserBtn.addEventListener('click', () => openModal(addUserModal));
+
+    addUserForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        addUserError.textContent = '';
+
+        const username = document.getElementById('newUserName').value.trim();
+        const password = document.getElementById('newUserPass').value;
+        const passConfirm = document.getElementById('newUserPassConfirm').value;
+        const role = document.getElementById('newUserRole').value;
+
+        if (!username || !password || !passConfirm) {
+            addUserError.textContent = 'Preencha todos os campos.';
+            return;
+        }
+        if (password.length < 6) {
+            addUserError.textContent = 'A senha deve ter no mínimo 6 caracteres.';
+            return;
+        }
+        if (password !== passConfirm) {
+            addUserError.textContent = 'As senhas não conferem.';
+            return;
+        }
+
+        addUserSubmit.disabled = true;
+        addUserSubmit.innerHTML = '<span>Criando...</span>';
 
         try {
             const res = await apiFetch('/auth/users', {
@@ -619,10 +716,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Erro');
-            showToast('Usuário criado!', 'success');
+            showToast('Usuário "' + username + '" criado!', 'success');
+            closeModal(addUserModal);
+            addUserForm.reset();
             loadUsers();
         } catch (err) {
-            showToast(err.message, 'error');
+            addUserError.textContent = err.message;
+        } finally {
+            addUserSubmit.disabled = false;
+            addUserSubmit.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Criar Usuário</span>';
         }
     });
 
