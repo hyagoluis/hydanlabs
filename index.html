@@ -43,9 +43,15 @@
                 <li><a href="#vision">Visão</a></li>
                 <li><a href="#contact" class="nav-cta">Contato</a></li>
             </ul>
-            <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">
-                <span></span><span></span><span></span>
-            </button>
+            <div class="nav-actions">
+                <button class="theme-toggle" id="themeToggle" aria-label="Alternar tema">
+                    <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                </button>
+                <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
         </div>
     </nav>
 
@@ -55,6 +61,11 @@
             <div class="hero-badge reveal">
                 <span class="badge-dot"></span>
                 <span>Inovando o futuro da IA</span>
+                <span class="badge-separator"></span>
+                <span class="status-indicator" id="statusIndicator" title="Status da Hydan">
+                    <span class="status-dot status-checking"></span>
+                    <span class="status-text">verificando...</span>
+                </span>
             </div>
             <h1 class="hero-title reveal">
                 Bem-vindo à<br>
@@ -73,22 +84,22 @@
             </div>
         </div>
 
-        <!-- Elemento visual flutuante -->
+        <!-- Terminal animado mostrando a Hydan em ação -->
         <div class="hero-visual reveal">
             <div class="orb orb-1"></div>
             <div class="orb orb-2"></div>
-            <div class="orb orb-3"></div>
-            <div class="core-ring">
-                <div class="core-center">
-                    <svg width="80" height="80" viewBox="0 0 100 100" aria-hidden="true">
-                        <defs>
-                            <linearGradient id="coreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#ff2d8b"/>
-                                <stop offset="100%" stop-color="#ff7eb6"/>
-                            </linearGradient>
-                        </defs>
-                        <path d="M28 22h9v22h26V22h9v56h-9V52H37v26h-9z" fill="url(#coreGrad)"/>
-                    </svg>
+            <div class="terminal">
+                <div class="terminal-header">
+                    <div class="terminal-dots">
+                        <span class="t-dot t-red"></span>
+                        <span class="t-dot t-yellow"></span>
+                        <span class="t-dot t-green"></span>
+                    </div>
+                    <span class="terminal-title">hydan@labs: ~</span>
+                </div>
+                <div class="terminal-body" id="terminalBody">
+                    <div class="terminal-line"><span class="prompt">hydan@labs</span><span class="prompt-sep">:</span><span class="prompt-path">~</span><span class="prompt-sep">$</span></div>
+                    <!-- Conteúdo injetado via JS -->
                 </div>
             </div>
         </div>
@@ -233,6 +244,17 @@
         </div>
     </footer>
 
+    <a href="#hero" class="back-to-top" id="backToTop" aria-label="Voltar ao topo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+
+    <script>
+        // Aplica o tema imediatamente (antes do CSS carregar) p/ evitar flash
+        (function() {
+            const saved = localStorage.getItem('hydan-theme');
+            if (saved === 'light') document.documentElement.setAttribute('data-theme', 'light');
+        })();
+    </script>
     <script src="script.js"></script>
 </body>
 </html>
