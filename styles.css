@@ -871,6 +871,213 @@ body {
     padding-bottom: 4rem;
 }
 
+/* ===== MONITORING ===== */
+.monitoring {
+    padding-top: 4rem;
+}
+
+.monitor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.service-card {
+    padding: 1.5rem;
+    border-radius: 16px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+}
+
+.service-card:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-4px);
+}
+
+.service-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.service-icon.running {
+    background: rgba(74, 222, 128, 0.12);
+    color: #4ade80;
+}
+
+.service-icon.stopped {
+    background: rgba(248, 113, 113, 0.12);
+    color: #f87171;
+}
+
+.service-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.service-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
+.service-status {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.service-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.service-status-dot.on {
+    background: #4ade80;
+    box-shadow: 0 0 6px rgba(74, 222, 128, 0.7);
+}
+
+.service-status-dot.off {
+    background: #f87171;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.metric-card {
+    padding: 1.75rem;
+    border-radius: 16px;
+    transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--border-hover);
+}
+
+.metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.85rem;
+}
+
+.metric-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.metric-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.6rem;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.metric-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.6rem;
+}
+
+[data-theme="light"] .metric-bar {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.metric-bar-fill {
+    height: 100%;
+    background: var(--gradient);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.6s ease;
+    box-shadow: 0 0 10px rgba(255, 45, 139, 0.5);
+}
+
+.metric-bar-fill.warn {
+    background: linear-gradient(135deg, #facc15 0%, #fbbf24 100%);
+    box-shadow: 0 0 10px rgba(250, 204, 21, 0.5);
+}
+
+.metric-bar-fill.crit {
+    background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+.metric-sub {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+}
+
+.monitor-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.info-item {
+    padding: 1.1rem 1.25rem;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.info-label {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.info-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--text);
+}
+
+.monitor-loading {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-dim);
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 768px) {
+    .monitor-grid,
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .contact-card {
     text-align: center;
     padding: 5rem 3rem;

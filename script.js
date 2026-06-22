@@ -390,4 +390,155 @@ document.addEventListener('DOMContentLoaded', () => {
     const yearEl = document.getElementById('year');
     if (yearEl) yearEl.textContent = new Date().getFullYear();
 
+    /* ============================================================
+       11. MONITORAMENTO — Busca métricas do backend Python
+       ============================================================ */
+    const formatBytes = (bytes) => {
+        if (!bytes && bytes !== 0) return '--';
+        const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        let i = 0;
+        let val = bytes;
+        while (val >= 1024 && i < units.length - 1) { val /= 1024; i++; }
+        return val.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+    };
+
+    const formatUptime = (seconds) => {
+        if (!seconds && seconds !== 0) return '--';
+        const d = Math.floor(seconds / 86400);
+        const h = Math.floor((seconds % 86400) / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        if (d > 0) return `${d}d ${h}h ${m}m`;
+        if (h > 0) return `${h}h ${m}m`;
+        return `${m}m`;
+    };
+
+    const setBarClass = (bar, percent) => {
+        bar.classList.remove('warn', 'crit');
+        if (percent >= 90) bar.classList.add('crit');
+        else if (percent >= 75) bar.classList.add('warn');
+    };
+
+    // Ícones SVG para os serviços
+    const serviceIcons = {
+        ollama: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2a4 4 0 0 0-4 4v1a4 4 0 0 0-3 6.7V18a4 4 0 0 0 4 4h6a4 4 0 0 0 4-4v-4.3A4 4 0 0 0 16 7V6a4 4 0 0 0-4-4z" stroke="currentColor" stroke-width="1.6"/></svg>',
+        openwebui: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 9h18M8 21h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+        hermes: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>'
+    };
+
+    const renderServices = (services) => {
+        const grid = document.getElementById('servicesGrid');
+        if (!grid) return;
+        grid.innerHTML = services.map(s => `
+            <div class="service-card">
+                <div class="service-icon ${s.running ? 'running' : 'stopped'}">
+                    ${serviceIcons[s.type] || serviceIcons.ollama}
+                </div>
+                <div class="service-info">
+                    <div class="service-name">${s.name}</div>
+                    <div class="service-status">
+                        <span class="service-status-dot ${s.running ? 'on' : 'off'}"></span>
+                        ${s.running ? 'Online' : 'Offline'}${s.port ? ' · :' + s.port : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    };
+
+    const renderMetrics = (data) => {
+        // CPU
+        const cpuPct = data.cpu.percent;
+        const cpuValue = document.getElementById('cpuValue');
+        const cpuBar = document.getElementById('cpuBar');
+        if (cpuValue) cpuValue.textContent = cpuPct.toFixed(1) + '%';
+        if (cpuBar) {
+            cpuBar.style.width = cpuPct + '%';
+            setBarClass(cpuBar, cpuPct);
+        }
+        const cpuCores = document.getElementById('cpuCores');
+        if (cpuCores) cpuCores.textContent = `${data.cpu.cores} núcleos · ${data.cpu.threads} threads`;
+
+        // RAM
+        const ramPct = data.memory.percent;
+        const ramValue = document.getElementById('ramValue');
+        const ramBar = document.getElementById('ramBar');
+        if (ramValue) ramValue.textContent = ramPct.toFixed(1) + '%';
+        if (ramBar) {
+            ramBar.style.width = ramPct + '%';
+            setBarClass(ramBar, ramPct);
+        }
+        const ramDetail = document.getElementById('ramDetail');
+        if (ramDetail) ramDetail.textContent = `${formatBytes(data.memory.used)} / ${formatBytes(data.memory.total)}`;
+
+        // Disco
+        const diskPct = data.disk.percent;
+        const diskValue = document.getElementById('diskValue');
+        const diskBar = document.getElementById('diskBar');
+        if (diskValue) diskValue.textContent = diskPct.toFixed(1) + '%';
+        if (diskBar) {
+            diskBar.style.width = diskPct + '%';
+            setBarClass(diskBar, diskPct);
+        }
+        const diskDetail = document.getElementById('diskDetail');
+        if (diskDetail) diskDetail.textContent = `${formatBytes(data.disk.used)} / ${formatBytes(data.disk.total)}`;
+
+        // GPU (se existir)
+        if (data.gpu && Array.isArray(data.gpu) && data.gpu.length > 0) {
+            const gpuCard = document.getElementById('gpuCard');
+            if (gpuCard) gpuCard.style.display = '';
+            const g = data.gpu[0];
+            const gpuValue = document.getElementById('gpuValue');
+            const gpuBar = document.getElementById('gpuBar');
+            if (gpuValue) gpuValue.textContent = g.utilization + '%';
+            if (gpuBar) {
+                gpuBar.style.width = g.utilization + '%';
+                setBarClass(gpuBar, g.utilization);
+            }
+            const gpuDetail = document.getElementById('gpuDetail');
+            if (gpuDetail) gpuDetail.textContent = `${g.name} · ${g.temperature}°C · ${formatBytes(g.memory_used)}/${formatBytes(g.memory_total)}`;
+        }
+
+        // Infos extras
+        const uptime = document.getElementById('uptimeValue');
+        if (uptime) uptime.textContent = formatUptime(data.uptime_seconds);
+        const hostname = document.getElementById('hostnameValue');
+        if (hostname) hostname.textContent = data.hostname;
+        const netRx = document.getElementById('netRxValue');
+        if (netRx) netRx.textContent = formatBytes(data.network.bytes_recv);
+        const netTx = document.getElementById('netTxValue');
+        if (netTx) netTx.textContent = formatBytes(data.network.bytes_sent);
+    };
+
+    const fetchMetrics = async () => {
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 4000);
+            const res = await fetch('/api/metrics', { signal: controller.signal });
+            clearTimeout(timeout);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            renderMetrics(data);
+            renderServices(data.services);
+        } catch (err) {
+            // Silencioso — só mostra loading se for a primeira vez
+            const grid = document.getElementById('servicesGrid');
+            if (grid && grid.children.length === 0) {
+                grid.innerHTML = '<div class="monitor-loading">⚠️ Backend de métricas offline. Veja o passo de instalação do metrics-server.</div>';
+            }
+        }
+    };
+
+    // Só busca métricas quando a seção estiver visível
+    const metricsSection = document.getElementById('stats-dashboard');
+    let metricsStarted = false;
+    const metricsObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && !metricsStarted) {
+                metricsStarted = true;
+                fetchMetrics();
+                setInterval(fetchMetrics, 3000); // atualiza a cada 3s
+            }
+        });
+    }, { threshold: 0.1 });
+    if (metricsSection) metricsObserver.observe(metricsSection);
+
 });
