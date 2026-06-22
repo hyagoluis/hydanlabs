@@ -1,47 +1,89 @@
-/* ===== Hydan-Labs | Interações e animações ===== */
+/* ===== Hydan-Labs | Interações, animações e autenticação ===== */
 
 document.addEventListener('DOMContentLoaded', () => {
 
     /* ============================================================
-       1. THEME TOGGLE (Claro / Escuro)
+       UTILITÁRIOS GLOBAIS
+       ============================================================ */
+    const getToken = () => localStorage.getItem('hydan_token') || '';
+    const setToken = (t) => {
+        if (t) localStorage.setItem('hydan_token', t);
+        else localStorage.removeItem('hydan_token');
+    };
+
+    const apiFetch = async (url, opts = {}) => {
+        const token = getToken();
+        const headers = { ...(opts.headers || {}) };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        if (opts.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+        return await fetch(url, { ...opts, headers, credentials: 'include' });
+    };
+
+    const showToast = (msg, type = '') => {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.className = 'toast show ' + type;
+        clearTimeout(toast._t);
+        toast._t = setTimeout(() => toast.classList.remove('show'), 3000);
+    };
+
+    const formatBytes = (bytes) => {
+        if (!bytes && bytes !== 0) return '--';
+        const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        let i = 0; let val = bytes;
+        while (val >= 1024 && i < units.length - 1) { val /= 1024; i++; }
+        return val.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+    };
+
+    const formatUptime = (seconds) => {
+        if (!seconds && seconds !== 0) return '--';
+        const d = Math.floor(seconds / 86400);
+        const h = Math.floor((seconds % 86400) / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        if (d > 0) return `${d}d ${h}h ${m}m`;
+        if (h > 0) return `${h}h ${m}m`;
+        return `${m}m`;
+    };
+
+    const formatDate = (iso) => {
+        if (!iso) return '--';
+        try {
+            const d = new Date(iso);
+            return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        } catch { return iso; }
+    };
+
+    const setBarClass = (bar, percent) => {
+        bar.classList.remove('warn', 'crit');
+        if (percent >= 90) bar.classList.add('crit');
+        else if (percent >= 75) bar.classList.add('warn');
+    };
+
+    /* ============================================================
+       1. THEME TOGGLE
        ============================================================ */
     const themeToggle = document.getElementById('themeToggle');
     const root = document.documentElement;
 
-    // Sincroniza o ícone com o tema atual
-    const syncThemeIcon = () => {
-        // O CSS controla qual ícone aparece via [data-theme]
-        // Aqui só garantimos consistência
-    };
-
     themeToggle.addEventListener('click', () => {
         const current = root.getAttribute('data-theme');
         const next = current === 'light' ? 'dark' : 'light';
-        if (next === 'dark') {
-            root.removeAttribute('data-theme');
-        } else {
-            root.setAttribute('data-theme', 'light');
-        }
+        if (next === 'dark') root.removeAttribute('data-theme');
+        else root.setAttribute('data-theme', 'light');
         localStorage.setItem('hydan-theme', next);
     });
 
     /* ============================================================
-       2. NAVBAR SCROLL + MENU MOBILE
+       2. NAVBAR SCROLL + MENU MOBILE + BACK TO TOP
        ============================================================ */
     const navbar = document.getElementById('navbar');
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 50) {
-            navbar.classList.add('scrolled');
-        } else {
-            navbar.classList.remove('scrolled');
-        }
+    const backToTop = document.getElementById('backToTop');
 
-        // Back to top
-        if (window.scrollY > 400) {
-            backToTop.classList.add('visible');
-        } else {
-            backToTop.classList.remove('visible');
-        }
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 50) navbar.classList.add('scrolled');
+        else navbar.classList.remove('scrolled');
+        if (window.scrollY > 400) backToTop.classList.add('visible');
+        else backToTop.classList.remove('visible');
     });
 
     const menuToggle = document.getElementById('menuToggle');
@@ -59,20 +101,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    /* ============================================================
-       3. BACK TO TOP
-       ============================================================ */
-    const backToTop = document.getElementById('backToTop');
     backToTop.addEventListener('click', (e) => {
         e.preventDefault();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
     /* ============================================================
-       4. REVEAL ON SCROLL
+       3. REVEAL ON SCROLL
        ============================================================ */
     const revealElements = document.querySelectorAll('.reveal');
-
     const revealObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry, index) => {
             if (entry.isIntersecting) {
@@ -81,42 +118,29 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
-
     revealElements.forEach(el => revealObserver.observe(el));
 
     /* ============================================================
-       5. CONTADORES (STATS)
+       4. CONTADORES (STATS)
        ============================================================ */
     const statNumbers = document.querySelectorAll('.stat-number');
-
     const animateCounter = (el) => {
         const target = el.getAttribute('data-target');
         const suffix = el.getAttribute('data-suffix') || '';
-
-        if (target === '∞') {
-            el.textContent = '∞';
-            return;
-        }
-
+        if (target === '∞') { el.textContent = '∞'; return; }
         const finalValue = parseInt(target, 10);
         const duration = 1800;
         const startTime = performance.now();
-
         const updateNumber = (now) => {
             const elapsed = now - startTime;
             const progress = Math.min(elapsed / duration, 1);
             const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
-            const current = Math.floor(eased * finalValue);
-            el.textContent = current + suffix;
-            if (progress < 1) {
-                requestAnimationFrame(updateNumber);
-            } else {
-                el.textContent = finalValue + suffix;
-            }
+            el.textContent = Math.floor(eased * finalValue) + suffix;
+            if (progress < 1) requestAnimationFrame(updateNumber);
+            else el.textContent = finalValue + suffix;
         };
         requestAnimationFrame(updateNumber);
     };
-
     const statsObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -125,15 +149,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }, { threshold: 0.5 });
-
     statNumbers.forEach(el => statsObserver.observe(el));
 
     /* ============================================================
-       6. TERMINAL ANIMADO NO HERO
+       5. TERMINAL ANIMADO NO HERO
        ============================================================ */
     const terminalBody = document.getElementById('terminalBody');
-
-    // Cenas que vão "rodar" no terminal, em loop
     const scenes = [
         {
             command: 'hydan init --model=hydan-v2',
@@ -160,7 +181,6 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
     const typeText = async (element, text, speed = 28) => {
         for (let i = 0; i < text.length; i++) {
             element.textContent += text[i];
@@ -171,10 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const runTerminal = async () => {
         while (true) {
             for (const scene of scenes) {
-                // Limpa tudo, mantém só a linha de prompt base
                 terminalBody.innerHTML = '';
-
-                // Linha de prompt + comando
                 const promptLine = document.createElement('div');
                 promptLine.className = 'terminal-line';
                 promptLine.innerHTML = '<span class="prompt">hydan@labs</span><span class="prompt-sep">:</span><span class="prompt-path">~</span><span class="prompt-sep">$</span>';
@@ -183,33 +200,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 promptLine.appendChild(cmdSpan);
                 terminalBody.appendChild(promptLine);
 
-                // Digita o comando
                 await typeText(cmdSpan, scene.command, 35);
                 await sleep(400);
 
-                // Mostra cada linha de output
                 for (const line of scene.output) {
                     const outDiv = document.createElement('div');
                     outDiv.className = line.color;
                     terminalBody.appendChild(outDiv);
-
-                    // Digita cada linha (mantém quebras de linha)
                     const parts = line.text.split('\n');
                     for (let p = 0; p < parts.length; p++) {
                         await typeText(outDiv, parts[p], 18);
-                        if (p < parts.length - 1) {
-                            outDiv.appendChild(document.createElement('br'));
-                        }
+                        if (p < parts.length - 1) outDiv.appendChild(document.createElement('br'));
                     }
                     await sleep(300);
                 }
-
                 await sleep(2000);
             }
         }
     };
 
-    // Inicia o terminal só quando estiver visível (economiza CPU)
     const terminalObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -218,46 +227,33 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }, { threshold: 0.3 });
-
     if (terminalBody) terminalObserver.observe(terminalBody);
 
     /* ============================================================
-       7. STATUS BADGE — Verifica o Ollama em tempo real
+       6. STATUS BADGE (Ollama online check)
        ============================================================ */
     const statusDot = document.querySelector('#statusIndicator .status-dot');
     const statusText = document.querySelector('#statusIndicator .status-text');
-
     const setStatus = (state, text) => {
-        statusDot.className = 'status-dot status-' + state;
-        statusText.textContent = text;
+        if (statusDot) statusDot.className = 'status-dot status-' + state;
+        if (statusText) statusText.textContent = text;
     };
-
     const checkStatus = async () => {
         try {
-            // Tenta o endpoint /status (proxy do Nginx para o Ollama)
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 3000);
-
+            const t = setTimeout(() => controller.abort(), 3000);
             const res = await fetch('/status', { signal: controller.signal });
-            clearTimeout(timeout);
-
-            if (res.ok) {
-                setStatus('online', 'Hydan online');
-            } else {
-                setStatus('offline', 'offline');
-            }
-        } catch (err) {
-            // Se /status não existir, mostra como "demo" sem falhar feio
+            clearTimeout(t);
+            setStatus(res.ok ? 'online' : 'offline', res.ok ? 'Hydan online' : 'offline');
+        } catch {
             setStatus('offline', 'indisponível');
         }
     };
-
-    // Verifica a cada 30 segundos
     checkStatus();
     setInterval(checkStatus, 30000);
 
     /* ============================================================
-       8. PARTÍCULAS NO CANVAS (adaptado ao tema)
+       7. PARTÍCULAS NO CANVAS
        ============================================================ */
     const canvas = document.getElementById('particles');
     const ctx = canvas.getContext('2d');
@@ -270,22 +266,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
 
-    window.addEventListener('mousemove', (e) => {
-        mouse.x = e.clientX;
-        mouse.y = e.clientY;
-    });
-
-    // Lê a cor das partículas das variáveis CSS
     const getParticleColors = () => {
         const styles = getComputedStyle(document.documentElement);
         const dotRaw = styles.getPropertyValue('--particle-color').trim();
-        // Extrai números da string rgba(r, g, b, a)
         const match = dotRaw.match(/rgba?\(([^)]+)\)/);
-        let rgb = [255, 45, 139]; // fallback
-        if (match) {
-            rgb = match[1].split(',').map(n => parseFloat(n.trim())).slice(0, 3);
-        }
+        let rgb = [255, 45, 139];
+        if (match) rgb = match[1].split(',').map(n => parseFloat(n.trim())).slice(0, 3);
         return {
             dot: (alpha) => `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`,
             line: styles.getPropertyValue('--particle-line').trim() || 'rgba(255,126,182,0.15)'
@@ -293,12 +281,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     class Particle {
-        constructor() {
-            this.reset(true);
-        }
-        reset(initial = false) {
+        constructor() { this.reset(true); }
+        reset() {
             this.x = Math.random() * canvas.width;
-            this.y = initial ? Math.random() * canvas.height : Math.random() * canvas.height;
+            this.y = Math.random() * canvas.height;
             this.size = Math.random() * 2 + 0.5;
             this.speedX = (Math.random() - 0.5) * 0.4;
             this.speedY = (Math.random() - 0.5) * 0.4;
@@ -307,10 +293,8 @@ document.addEventListener('DOMContentLoaded', () => {
         update() {
             this.x += this.speedX;
             this.y += this.speedY;
-
             if (mouse.x !== null) {
-                const dx = mouse.x - this.x;
-                const dy = mouse.y - this.y;
+                const dx = mouse.x - this.x, dy = mouse.y - this.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 if (distance < 120) {
                     const force = (120 - distance) / 120;
@@ -318,7 +302,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     this.y -= (dy / distance) * force * 1.5;
                 }
             }
-
             if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
             if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
         }
@@ -360,17 +343,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const animate = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const colors = getParticleColors();
-        particles.forEach(p => {
-            p.update();
-            p.draw(colors);
-        });
+        particles.forEach(p => { p.update(); p.draw(colors); });
         connectParticles(colors);
         requestAnimationFrame(animate);
     };
     animate();
 
     /* ============================================================
-       9. SMOOTH SCROLL
+       8. SMOOTH SCROLL
        ============================================================ */
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
@@ -385,40 +365,410 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     /* ============================================================
-       10. ANO NO RODAPÉ
+       9. ANO NO RODAPÉ
        ============================================================ */
     const yearEl = document.getElementById('year');
     if (yearEl) yearEl.textContent = new Date().getFullYear();
 
     /* ============================================================
-       11. MONITORAMENTO — Busca métricas do backend Python
+       10. AUTENTICAÇÃO
        ============================================================ */
-    const formatBytes = (bytes) => {
-        if (!bytes && bytes !== 0) return '--';
-        const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        let i = 0;
-        let val = bytes;
-        while (val >= 1024 && i < units.length - 1) { val /= 1024; i++; }
-        return val.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+    const accountBtn = document.getElementById('accountBtn');
+    const accountLabel = document.getElementById('accountLabel');
+    const accountDropdown = document.getElementById('accountDropdown');
+    const ddUserName = document.getElementById('ddUserName');
+    const ddUserRole = document.getElementById('ddUserRole');
+    const ddAdminBtn = document.getElementById('ddAdminBtn');
+    const ddChangePassBtn = document.getElementById('ddChangePassBtn');
+    const ddLogoutBtn = document.getElementById('ddLogoutBtn');
+
+    const loginModal = document.getElementById('loginModal');
+    const passwordModal = document.getElementById('passwordModal');
+    const adminPanel = document.getElementById('adminPanel');
+
+    const monitorProtected = document.getElementById('monitorProtected');
+    const monitorLocked = document.getElementById('monitorLocked');
+    const metricsGrid = document.getElementById('metricsGrid');
+    const monitorInfo = document.getElementById('monitorInfo');
+
+    let currentUser = null;
+
+    const openModal = (modal) => modal.classList.add('show');
+    const closeModal = (modal) => modal.classList.remove('show');
+
+    document.querySelectorAll('[data-close-modal]').forEach(btn => {
+        btn.addEventListener('click', () => btn.closest('.modal-overlay').classList.remove('show'));
+    });
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.classList.remove('show');
+        });
+    });
+
+    document.querySelectorAll('[data-close-admin]').forEach(el => {
+        el.addEventListener('click', () => adminPanel.classList.remove('show'));
+    });
+
+    accountBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!currentUser) {
+            openModal(loginModal);
+        } else {
+            accountDropdown.classList.toggle('show');
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!accountDropdown.contains(e.target) && !accountBtn.contains(e.target)) {
+            accountDropdown.classList.remove('show');
+        }
+    });
+
+    const lockLoginBtn = document.getElementById('lockLoginBtn');
+    if (lockLoginBtn) lockLoginBtn.addEventListener('click', () => openModal(loginModal));
+
+    ddAdminBtn.addEventListener('click', () => {
+        accountDropdown.classList.remove('show');
+        openAdminPanel();
+    });
+    ddChangePassBtn.addEventListener('click', () => {
+        accountDropdown.classList.remove('show');
+        openModal(passwordModal);
+    });
+    ddLogoutBtn.addEventListener('click', () => doLogout());
+
+    /* ============================================================
+       11. LOGIN
+       ============================================================ */
+    const loginForm = document.getElementById('loginForm');
+    const loginError = document.getElementById('loginError');
+    const loginSubmit = document.getElementById('loginSubmit');
+
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        loginError.textContent = '';
+        loginSubmit.disabled = true;
+        loginSubmit.innerHTML = '<span>Entrando...</span>';
+
+        const username = document.getElementById('loginUser').value.trim();
+        const password = document.getElementById('loginPass').value;
+
+        try {
+            const res = await apiFetch('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Erro ao entrar');
+
+            setToken(data.token);
+            currentUser = data.user;
+            applyAuthState();
+            closeModal(loginModal);
+            showToast('Bem-vindo, ' + data.user.username + '!', 'success');
+            loginForm.reset();
+        } catch (err) {
+            loginError.textContent = err.message;
+        } finally {
+            loginSubmit.disabled = false;
+            loginSubmit.innerHTML = '<span>Entrar</span>';
+        }
+    });
+
+    /* ============================================================
+       12. LOGOUT
+       ============================================================ */
+    const doLogout = async () => {
+        try { await apiFetch('/auth/logout', { method: 'POST' }); } catch {}
+        setToken(null);
+        currentUser = null;
+        applyAuthState();
+        accountDropdown.classList.remove('show');
+        showToast('Você saiu da conta.');
     };
 
-    const formatUptime = (seconds) => {
-        if (!seconds && seconds !== 0) return '--';
-        const d = Math.floor(seconds / 86400);
-        const h = Math.floor((seconds % 86400) / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        if (d > 0) return `${d}d ${h}h ${m}m`;
-        if (h > 0) return `${h}h ${m}m`;
-        return `${m}m`;
+    /* ============================================================
+       13. CHECK SESSION
+       ============================================================ */
+    const checkSession = async () => {
+        if (!getToken()) { applyAuthState(); return; }
+        try {
+            const res = await apiFetch('/auth/me');
+            if (res.ok) currentUser = await res.json();
+            else setToken(null);
+        } catch { setToken(null); }
+        applyAuthState();
     };
 
-    const setBarClass = (bar, percent) => {
-        bar.classList.remove('warn', 'crit');
-        if (percent >= 90) bar.classList.add('crit');
-        else if (percent >= 75) bar.classList.add('warn');
+    /* ============================================================
+       14. APLICAR ESTADO DE AUTENTICAÇÃO
+       ============================================================ */
+    const applyAuthState = () => {
+        if (currentUser) {
+            accountLabel.textContent = currentUser.username;
+            ddUserName.textContent = currentUser.username;
+            ddUserRole.textContent = currentUser.role === 'admin' ? 'Administrador' : 'Usuário';
+            ddAdminBtn.style.display = currentUser.role === 'admin' ? 'flex' : 'none';
+
+            monitorProtected.classList.remove('hidden');
+            monitorLocked.classList.add('hidden');
+
+            if (currentUser.role !== 'admin') {
+                if (metricsGrid) metricsGrid.style.display = 'none';
+                if (monitorInfo) monitorInfo.style.display = 'none';
+            } else {
+                if (metricsGrid) metricsGrid.style.display = '';
+                if (monitorInfo) monitorInfo.style.display = '';
+            }
+        } else {
+            accountLabel.textContent = 'Acessar';
+            ddUserName.textContent = '--';
+            ddUserRole.textContent = '--';
+
+            monitorProtected.classList.add('hidden');
+            monitorLocked.classList.remove('hidden');
+        }
     };
 
-    // Ícones SVG para os serviços
+    /* ============================================================
+       15. ALTERAR SENHA
+       ============================================================ */
+    const passwordForm = document.getElementById('passwordForm');
+    const passwordError = document.getElementById('passwordError');
+
+    passwordForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        passwordError.textContent = '';
+        const current = document.getElementById('currentPass').value;
+        const newPass = document.getElementById('newPass').value;
+
+        try {
+            const res = await apiFetch('/auth/change-password', {
+                method: 'POST',
+                body: JSON.stringify({ current_password: current, new_password: newPass })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Erro');
+            closeModal(passwordModal);
+            showToast('Senha alterada com sucesso!', 'success');
+            passwordForm.reset();
+        } catch (err) {
+            passwordError.textContent = err.message;
+        }
+    });
+
+    /* ============================================================
+       16. PAINEL ADMIN
+       ============================================================ */
+    const openAdminPanel = async () => {
+        adminPanel.classList.add('show');
+        await loadUsers();
+    };
+
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.admin-content').forEach(c => c.classList.remove('active'));
+            tab.classList.add('active');
+            const target = tab.dataset.tab;
+            document.getElementById('tab-' + target).classList.add('active');
+
+            if (target === 'metrics') loadAdminMetrics();
+            if (target === 'logs') loadLogs();
+            if (target === 'settings') loadSettings();
+        });
+    });
+
+    const loadUsers = async () => {
+        const tbody = document.getElementById('usersTableBody');
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-dim)">Carregando...</td></tr>';
+        try {
+            const res = await apiFetch('/auth/users');
+            const users = await res.json();
+            if (!res.ok) throw new Error('Erro ao carregar');
+            tbody.innerHTML = users.map(u => `
+                <tr>
+                    <td><strong>${u.username}</strong></td>
+                    <td><span class="role-badge ${u.role}">${u.role}</span></td>
+                    <td style="color:var(--text-muted)">${formatDate(u.created_at)}</td>
+                    <td>
+                        <button class="action-btn" onclick="toggleRole('${u.id}','${u.role}')">
+                            ${u.role === 'admin' ? 'Tornar user' : 'Tornar admin'}
+                        </button>
+                        <button class="action-btn danger" onclick="deleteUser('${u.id}','${u.username}')">Remover</button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="4" style="color:#f87171">${err.message}</td></tr>`;
+        }
+    };
+
+    const addUserBtn = document.getElementById('addUserBtn');
+    addUserBtn.addEventListener('click', async () => {
+        const username = prompt('Nome do usuário:');
+        if (!username) return;
+        const password = prompt('Senha (mínimo 6 caracteres):');
+        if (!password) return;
+        const role = confirm('Este usuário será admin? OK = Admin, Cancelar = User') ? 'admin' : 'user';
+
+        try {
+            const res = await apiFetch('/auth/users', {
+                method: 'POST',
+                body: JSON.stringify({ username, password, role })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Erro');
+            showToast('Usuário criado!', 'success');
+            loadUsers();
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    });
+
+    window.toggleRole = async (id, currentRole) => {
+        const newRole = currentRole === 'admin' ? 'user' : 'admin';
+        try {
+            const res = await apiFetch('/auth/users/' + id, {
+                method: 'PATCH',
+                body: JSON.stringify({ role: newRole })
+            });
+            if (!res.ok) throw new Error('Erro');
+            showToast('Role atualizada', 'success');
+            loadUsers();
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    };
+
+    window.deleteUser = async (id, username) => {
+        if (!confirm('Remover usuário "' + username + '"?')) return;
+        try {
+            const res = await apiFetch('/auth/users/' + id, { method: 'DELETE' });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Erro');
+            showToast('Usuário removido', 'success');
+            loadUsers();
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    };
+
+    /* ============================================================
+       17. ADMIN METRICS TAB
+       ============================================================ */
+    let adminMetricsInterval = null;
+    const loadAdminMetrics = async () => {
+        const container = document.getElementById('adminMetrics');
+        container.innerHTML = '<div style="color:var(--text-dim)">Carregando métricas...</div>';
+
+        const fetchOnce = async () => {
+            try {
+                const res = await apiFetch('/api/metrics');
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Erro');
+                const gpu = (Array.isArray(data.gpu) && data.gpu.length > 0)
+                    ? `<div class="admin-metric-card"><div class="admin-metric-label">${data.gpu[0].name}</div><div class="admin-metric-value">${data.gpu[0].utilization}%</div><div style="color:var(--text-dim);font-size:0.8rem">${data.gpu[0].temperature}°C · ${formatBytes(data.gpu[0].memory_used)}</div></div>`
+                    : '';
+                container.innerHTML = `
+                    <div class="admin-metric-card"><div class="admin-metric-label">CPU</div><div class="admin-metric-value">${data.cpu.percent.toFixed(1)}%</div><div style="color:var(--text-dim);font-size:0.8rem">${data.cpu.cores} cores · ${data.cpu.threads} threads</div></div>
+                    <div class="admin-metric-card"><div class="admin-metric-label">RAM</div><div class="admin-metric-value">${data.memory.percent.toFixed(1)}%</div><div style="color:var(--text-dim);font-size:0.8rem">${formatBytes(data.memory.used)} / ${formatBytes(data.memory.total)}</div></div>
+                    <div class="admin-metric-card"><div class="admin-metric-label">Disco</div><div class="admin-metric-value">${data.disk.percent.toFixed(1)}%</div><div style="color:var(--text-dim);font-size:0.8rem">${formatBytes(data.disk.used)} / ${formatBytes(data.disk.total)}</div></div>
+                    <div class="admin-metric-card"><div class="admin-metric-label">Uptime</div><div class="admin-metric-value">${formatUptime(data.uptime_seconds)}</div><div style="color:var(--text-dim);font-size:0.8rem">${data.hostname}</div></div>
+                    ${gpu}
+                `;
+            } catch (err) {
+                container.innerHTML = `<div style="color:#f87171">${err.message}</div>`;
+            }
+        };
+
+        fetchOnce();
+        clearInterval(adminMetricsInterval);
+        adminMetricsInterval = setInterval(fetchOnce, 3000);
+    };
+
+    document.querySelectorAll('[data-restart]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const svc = btn.dataset.restart;
+            if (!confirm('Reiniciar ' + svc + '?')) return;
+            btn.disabled = true;
+            btn.textContent = 'Reiniciando...';
+            try {
+                const res = await apiFetch('/api/services/' + svc + '/restart', { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Erro');
+                showToast(svc + ' reiniciado!', 'success');
+            } catch (err) {
+                showToast(err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Reiniciar ' + svc.charAt(0).toUpperCase() + svc.slice(1);
+            }
+        });
+    });
+
+    /* ============================================================
+       18. LOGS TAB
+       ============================================================ */
+    const loadLogs = async () => {
+        const tbody = document.getElementById('logsTableBody');
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-dim)">Carregando...</td></tr>';
+        try {
+            const res = await apiFetch('/api/logs?limit=100');
+            const logs = await res.json();
+            if (!res.ok) throw new Error('Erro');
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-dim)">Nenhum log ainda</td></tr>';
+                return;
+            }
+            tbody.innerHTML = logs.map(l => `
+                <tr>
+                    <td style="color:var(--text-muted)">${formatDate(l.timestamp)}</td>
+                    <td><strong>${l.username}</strong></td>
+                    <td>${l.action}</td>
+                    <td style="color:var(--text-dim)">${l.ip_address || '--'}</td>
+                </tr>
+            `).join('');
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="4" style="color:#f87171">${err.message}</td></tr>`;
+        }
+    };
+    document.getElementById('refreshLogsBtn').addEventListener('click', loadLogs);
+
+    /* ============================================================
+       19. SETTINGS TAB
+       ============================================================ */
+    const loadSettings = async () => {
+        try {
+            const res = await apiFetch('/api/settings');
+            const data = await res.json();
+            if (!res.ok) throw new Error('Erro');
+            document.getElementById('settingSiteName').value = data.site_name || '';
+            document.getElementById('settingSiteTagline').value = data.site_tagline || '';
+        } catch {}
+    };
+
+    document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const settingsSuccess = document.getElementById('settingsSuccess');
+        settingsSuccess.textContent = '';
+        const data = {
+            site_name: document.getElementById('settingSiteName').value,
+            site_tagline: document.getElementById('settingSiteTagline').value
+        };
+        try {
+            const res = await apiFetch('/api/settings', { method: 'PATCH', body: JSON.stringify(data) });
+            if (!res.ok) throw new Error('Erro ao salvar');
+            settingsSuccess.textContent = '✓ Configurações salvas com sucesso!';
+            showToast('Configurações salvas!', 'success');
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    });
+
+    /* ============================================================
+       20. MONITORAMENTO (fetch protegido)
+       ============================================================ */
     const serviceIcons = {
         ollama: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2a4 4 0 0 0-4 4v1a4 4 0 0 0-3 6.7V18a4 4 0 0 0 4 4h6a4 4 0 0 0 4-4v-4.3A4 4 0 0 0 16 7V6a4 4 0 0 0-4-4z" stroke="currentColor" stroke-width="1.6"/></svg>',
         openwebui: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 9h18M8 21h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
@@ -445,43 +795,33 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const renderMetrics = (data) => {
-        // CPU
-        const cpuPct = data.cpu.percent;
+        const isAdmin = currentUser && currentUser.role === 'admin';
+        if (!isAdmin) return;
+
         const cpuValue = document.getElementById('cpuValue');
         const cpuBar = document.getElementById('cpuBar');
+        const cpuPct = data.cpu.percent;
         if (cpuValue) cpuValue.textContent = cpuPct.toFixed(1) + '%';
-        if (cpuBar) {
-            cpuBar.style.width = cpuPct + '%';
-            setBarClass(cpuBar, cpuPct);
-        }
+        if (cpuBar) { cpuBar.style.width = cpuPct + '%'; setBarClass(cpuBar, cpuPct); }
         const cpuCores = document.getElementById('cpuCores');
         if (cpuCores) cpuCores.textContent = `${data.cpu.cores} núcleos · ${data.cpu.threads} threads`;
 
-        // RAM
         const ramPct = data.memory.percent;
         const ramValue = document.getElementById('ramValue');
         const ramBar = document.getElementById('ramBar');
         if (ramValue) ramValue.textContent = ramPct.toFixed(1) + '%';
-        if (ramBar) {
-            ramBar.style.width = ramPct + '%';
-            setBarClass(ramBar, ramPct);
-        }
+        if (ramBar) { ramBar.style.width = ramPct + '%'; setBarClass(ramBar, ramPct); }
         const ramDetail = document.getElementById('ramDetail');
         if (ramDetail) ramDetail.textContent = `${formatBytes(data.memory.used)} / ${formatBytes(data.memory.total)}`;
 
-        // Disco
         const diskPct = data.disk.percent;
         const diskValue = document.getElementById('diskValue');
         const diskBar = document.getElementById('diskBar');
         if (diskValue) diskValue.textContent = diskPct.toFixed(1) + '%';
-        if (diskBar) {
-            diskBar.style.width = diskPct + '%';
-            setBarClass(diskBar, diskPct);
-        }
+        if (diskBar) { diskBar.style.width = diskPct + '%'; setBarClass(diskBar, diskPct); }
         const diskDetail = document.getElementById('diskDetail');
         if (diskDetail) diskDetail.textContent = `${formatBytes(data.disk.used)} / ${formatBytes(data.disk.total)}`;
 
-        // GPU (se existir)
         if (data.gpu && Array.isArray(data.gpu) && data.gpu.length > 0) {
             const gpuCard = document.getElementById('gpuCard');
             if (gpuCard) gpuCard.style.display = '';
@@ -489,15 +829,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const gpuValue = document.getElementById('gpuValue');
             const gpuBar = document.getElementById('gpuBar');
             if (gpuValue) gpuValue.textContent = g.utilization + '%';
-            if (gpuBar) {
-                gpuBar.style.width = g.utilization + '%';
-                setBarClass(gpuBar, g.utilization);
-            }
+            if (gpuBar) { gpuBar.style.width = g.utilization + '%'; setBarClass(gpuBar, g.utilization); }
             const gpuDetail = document.getElementById('gpuDetail');
             if (gpuDetail) gpuDetail.textContent = `${g.name} · ${g.temperature}°C · ${formatBytes(g.memory_used)}/${formatBytes(g.memory_total)}`;
         }
 
-        // Infos extras
         const uptime = document.getElementById('uptimeValue');
         if (uptime) uptime.textContent = formatUptime(data.uptime_seconds);
         const hostname = document.getElementById('hostnameValue');
@@ -509,36 +845,40 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const fetchMetrics = async () => {
+        if (!currentUser) return;
         try {
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 4000);
-            const res = await fetch('/api/metrics', { signal: controller.signal });
-            clearTimeout(timeout);
+            const t = setTimeout(() => controller.abort(), 4000);
+            const res = await apiFetch('/api/metrics', { signal: controller.signal });
+            clearTimeout(t);
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
             renderMetrics(data);
             renderServices(data.services);
         } catch (err) {
-            // Silencioso — só mostra loading se for a primeira vez
             const grid = document.getElementById('servicesGrid');
             if (grid && grid.children.length === 0) {
-                grid.innerHTML = '<div class="monitor-loading">⚠️ Backend de métricas offline. Veja o passo de instalação do metrics-server.</div>';
+                grid.innerHTML = '<div class="monitor-loading">⚠️ Backend offline. Verifique o serviço hydan-auth.</div>';
             }
         }
     };
 
-    // Só busca métricas quando a seção estiver visível
     const metricsSection = document.getElementById('stats-dashboard');
     let metricsStarted = false;
     const metricsObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
-            if (entry.isIntersecting && !metricsStarted) {
+            if (entry.isIntersecting && !metricsStarted && currentUser) {
                 metricsStarted = true;
                 fetchMetrics();
-                setInterval(fetchMetrics, 3000); // atualiza a cada 3s
+                setInterval(() => { if (currentUser) fetchMetrics(); }, 3000);
             }
         });
     }, { threshold: 0.1 });
     if (metricsSection) metricsObserver.observe(metricsSection);
+
+    /* ============================================================
+       21. INIT — Verifica sessão ao carregar
+       ============================================================ */
+    checkSession();
 
 });
