@@ -1,0 +1,16 @@
+[Unit]
+Description=Hydan-Labs Metrics Backend
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/hydan-metrics
+ExecStart=/opt/hydan-metrics/venv/bin/python /opt/hydan-metrics/metrics.py
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
