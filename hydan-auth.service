@@ -11,6 +11,7 @@ Restart=always
 RestartSec=3
 Environment=HYDAN_ADMIN_USER=admin
 Environment=HYDAN_ADMIN_PASS=hydan2025
+Environment=HYDAN_WEBHOOK_SECRET=CHANGE_ME_GERAR_UM_SECRET_UNICO
 StandardOutput=journal
 StandardError=journal
 

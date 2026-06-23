@@ -1,15 +1,16 @@
 """
 ============================================================
- Hydan-Labs | Auth Server + Metrics + Admin
+ Hydan-Labs | Auth Server + Metrics + Admin + Deploy
 ============================================================
  Backend Flask com autenticação JWT, gestão de usuários,
- monitoramento de sistema e painel administrativo.
+ monitoramento de sistema, painel administrativo e auto-deploy.
 
  Porta padrão: 8081 (acessível via Nginx)
 
  Endpoints públicos:
      POST /auth/login          Login (retorna JWT)
      GET  /api/health          Healthcheck
+     POST /webhook/deploy      Auto-deploy via GitHub webhook
 
  Endpoints autenticados:
      GET  /auth/me             Dados do usuário logado
@@ -21,6 +22,9 @@
      PATCH  /auth/users/<id>   Altera role/senha
      DELETE /auth/users/<id>   Remove usuário
      GET    /api/metrics       Métricas do sistema
+     GET    /api/models        Lista modelos Ollama
+     POST   /api/models/pull   Baixa modelo do Ollama
+     DELETE /api/models/<name> Remove modelo do Ollama
      GET    /api/logs          Logs de acesso
      POST   /api/services/<svc>/restart  Reinicia serviço
 ============================================================
@@ -30,6 +34,7 @@ import os
 import sys
 import time
 import uuid
+import hmac
 import socket
 import hashlib
 import sqlite3
@@ -37,6 +42,8 @@ import subprocess
 from datetime import datetime, timezone
 from functools import wraps
 from http.server import BaseHTTPRequestHandler
+from urllib.request import urlopen, Request
+from urllib.error import URLError, HTTPError
 
 from flask import Flask, request, jsonify, g
 import jwt
@@ -68,6 +75,10 @@ DB_PATH = "/opt/hydan-auth/data.db"
 
 ADMIN_USER = os.environ.get("HYDAN_ADMIN_USER", "admin")
 ADMIN_PASS = os.environ.get("HYDAN_ADMIN_PASS", "hydan2025")
+WEBHOOK_SECRET = os.environ.get("HYDAN_WEBHOOK_SECRET", "")
+REPO_DIR = os.environ.get("HYDAN_REPO_DIR", os.path.expanduser("~/hydanlabs"))
+SITE_DIR = "/var/www/hydan-labs"
+OLLAMA_URL = "http://127.0.0.1:11434"
 
 # Rate limiting simples
 _login_attempts = {}
@@ -548,6 +559,121 @@ def restart_service(service):
 @APP.route("/api/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok", "timestamp": int(time.time())})
+
+# ============================================================
+# WEBHOOK — Auto-deploy via GitHub
+# ============================================================
+@APP.route("/webhook/deploy", methods=["POST"])
+def webhook_deploy():
+    if not WEBHOOK_SECRET:
+        return jsonify({"error": "Webhook desabilitado (HYDAN_WEBHOOK_SECRET não configurado)"}), 503
+
+    # Verificar assinatura HMAC-SHA256 do GitHub
+    sig_header = request.headers.get("X-Hub-Signature-256", "")
+    if sig_header:
+        sha_name, signature = sig_header.split("=", 1) if "=" in sig_header else ("", "")
+        if sha_name != "sha256":
+            return jsonify({"error": "Assinatura inválida"}), 401
+        mac = hmac.new(WEBHOOK_SECRET.encode(), request.data, hashlib.sha256)
+        if not hmac.compare_digest(mac.hexdigest(), signature):
+            return jsonify({"error": "Assinatura incorreta"}), 401
+
+    log_action("system", "webhook", "deploy_triggered")
+
+    steps = []
+
+    # 1. Git pull
+    try:
+        result = subprocess.run(
+            ["git", "-C", REPO_DIR, "pull", "origin", "main"],
+            capture_output=True, text=True, timeout=30
+        )
+        steps.append({"step": "git_pull", "ok": result.returncode == 0, "output": result.stdout[-200:]})
+    except Exception as e:
+        steps.append({"step": "git_pull", "ok": False, "error": str(e)})
+        return jsonify({"ok": False, "steps": steps}), 500
+
+    # 2. Copiar arquivos estáticos
+    try:
+        for f in ("index.html", "styles.css", "script.js"):
+            src = os.path.join(REPO_DIR, f)
+            dst = os.path.join(SITE_DIR, f)
+            if os.path.exists(src):
+                subprocess.run(["cp", src, dst], check=True)
+        steps.append({"step": "copy_static", "ok": True})
+    except Exception as e:
+        steps.append({"step": "copy_static", "ok": False, "error": str(e)})
+
+    # 3. Atualizar Nginx (se nginx.conf mudou)
+    try:
+        nginx_src = os.path.join(REPO_DIR, "nginx.conf")
+        if os.path.exists(nginx_src):
+            subprocess.run(["cp", nginx_src, "/etc/nginx/sites-available/hydan-labs"], check=True)
+            subprocess.run(["nginx", "-t"], check=True, capture_output=True)
+            subprocess.run(["systemctl", "reload", "nginx"], check=True, capture_output=True)
+            steps.append({"step": "nginx_reload", "ok": True})
+        else:
+            steps.append({"step": "nginx_reload", "ok": True, "output": "nginx.conf não encontrado, pulando"})
+    except Exception as e:
+        steps.append({"step": "nginx_reload", "ok": False, "error": str(e)})
+
+    log_action("system", "webhook", "deploy_completed")
+    return jsonify({"ok": True, "steps": steps})
+
+# ============================================================
+# MODELS — Proxy para Ollama (Admin)
+# ============================================================
+def _ollama_request(path, method="GET", body=None, stream=False):
+    """Faz request para a API do Ollama e retorna (response_data, status_code)."""
+    url = OLLAMA_URL + path
+    try:
+        req = Request(url, data=body.encode("utf-8") if body else None, method=method)
+        req.add_header("Content-Type", "application/json")
+        resp = urlopen(req, timeout=30)
+        return resp.read().decode("utf-8"), resp.status
+    except HTTPError as e:
+        return e.read().decode("utf-8", errors="replace"), e.code
+    except (URLError, Exception) as e:
+        return f'{{"error": "Ollama indisponível: {str(e)}"}}', 502
+
+@APP.route("/api/models", methods=["GET"])
+@admin_required
+def list_models():
+    data, status = _ollama_request("/api/tags")
+    log_action(g.current_user["user_id"], g.current_user["username"], "list_models")
+    resp = jsonify(data if isinstance(data, dict) else data)
+    return resp
+
+@APP.route("/api/models/pull", methods=["POST"])
+@admin_required
+def pull_model():
+    data = request.get_json(silent=True) or {}
+    model_name = data.get("name", "").strip()
+    if not model_name:
+        return jsonify({"error": "Nome do modelo obrigatório"}), 400
+
+    log_action(g.current_user["user_id"], g.current_user["username"], f"pull_model:{model_name}")
+
+    body = f'{{"name": "{model_name}", "stream": false}}'
+    resp_data, status = _ollama_request("/api/pull", method="POST", body=body)
+
+    if status != 200:
+        return jsonify({"error": "Erro ao baixar modelo", "details": resp_data}), status
+
+    return jsonify({"message": f"Modelo '{model_name}' baixado com sucesso!"})
+
+@APP.route("/api/models/<model_name>", methods=["DELETE"])
+@admin_required
+def delete_model(model_name):
+    log_action(g.current_user["user_id"], g.current_user["username"], f"delete_model:{model_name}")
+
+    body = f'{{"name": "{model_name}"}}'
+    resp_data, status = _ollama_request("/api/delete", method="DELETE", body=body)
+
+    if status != 200:
+        return jsonify({"error": "Erro ao deletar modelo", "details": resp_data}), status
+
+    return jsonify({"message": f"Modelo '{model_name}' removido com sucesso!"})
 
 # ============================================================
 # MAIN
