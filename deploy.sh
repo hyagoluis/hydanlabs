@@ -46,7 +46,16 @@ echo -e "${GREEN}✓ Arquivos copiados para /var/www/hydan-labs/${NC}"
 
 # 5. Configurar Nginx
 echo -e "${YELLOW}[5/5] Configurando Nginx...${NC}"
-sudo cp deploy/nginx.conf /etc/nginx/sites-available/hydan-labs
+# Suporta ambos os layouts: deploy/nginx.conf ou nginx.conf na raiz
+if [ -f "deploy/nginx.conf" ]; then
+    NGINX_SRC="deploy/nginx.conf"
+elif [ -f "nginx.conf" ]; then
+    NGINX_SRC="nginx.conf"
+else
+    echo -e "${RED}✗ nginx.conf não encontrado!${NC}"
+    exit 1
+fi
+sudo cp "$NGINX_SRC" /etc/nginx/sites-available/hydan-labs
 sudo ln -sf /etc/nginx/sites-available/hydan-labs /etc/nginx/sites-enabled/
 
 # Remove o site default do Nginx pra evitar conflito
