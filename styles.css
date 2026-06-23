@@ -2119,6 +2119,65 @@ body {
     }
 }
 
+/* ===== MODELS ADMIN UI ===== */
+.models-admin-btn {
+    margin-top: 1.5rem;
+}
+
+.model-delete-btn {
+    margin-left: auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.model-delete-btn:hover {
+    border-color: #f87171;
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.08);
+}
+
+/* ===== MODEL SUGGESTIONS (pull modal) ===== */
+.model-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.suggestion-label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-right: 0.25rem;
+}
+
+.suggestion-chip {
+    padding: 0.3rem 0.7rem;
+    border-radius: 50px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--pink-soft);
+    font-size: 0.78rem;
+    font-family: 'Consolas', 'Monaco', monospace;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.suggestion-chip:hover {
+    border-color: var(--pink);
+    background: rgba(255, 45, 139, 0.08);
+    transform: translateY(-1px);
+}
+
 /* ============================================================
    TOAST CONTAINER (pilha de notificações)
    ============================================================ */
