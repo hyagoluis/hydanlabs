@@ -266,7 +266,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(checkStatus, 30000);
 
     /* ============================================================
-       6B. MODELS DASHBOARD (Ollama models)
+       6B. MODELS DASHBOARD (estático — sem Ollama)
+       A seção de modelos agora é renderizada estaticamente no HTML.
+       Os endpoints /api/models continuam disponíveis no backend.
        ============================================================ */
     const modelsGrid = document.getElementById('modelsGrid');
     const modelsEmpty = document.getElementById('modelsEmpty');
@@ -281,116 +283,53 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pullModelBtn) pullModelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
     };
 
-    const renderModels = (models, isAdmin) => {
-        if (models.length === 0) {
-            modelsGrid.style.display = 'none';
-            modelsEmpty.style.display = '';
-            modelsEmpty.querySelector('p').textContent = 'Nenhum modelo carregado no Ollama.';
-            modelsEmpty.querySelector('.models-empty-sub').textContent = 'Os modelos aparecerão aqui assim que forem baixados no servidor.';
-            return;
-        }
+    // Não busca mais do Ollama — modelos são estáticos no HTML.
+    const loadModels = () => {};
 
-        modelsEmpty.style.display = 'none';
-        modelsGrid.style.display = '';
-        modelsGrid.innerHTML = models.map(m => {
-            const name = m.name || 'desconhecido';
-            const size = m.size ? formatBytes(m.size) : '--';
-            const family = m.details && m.details.family ? m.details.family : '';
-            const quant = m.details && m.details.quantization_level ? m.details.quantization_level : '';
-            const paramParts = (m.details && m.details.parameter_size) ? m.details.parameter_size.split(' ') : [];
-            const paramLabel = paramParts.length === 2 ? `${paramParts[0]}${paramParts[1][0]}` : (m.details && m.details.parameter_size ? m.details.parameter_size : '');
-            const deleteBtn = isAdmin ? `
-                <button class="model-delete-btn" onclick="deleteModel('${name}')" title="Remover modelo">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>` : '';
-            return `
-                <div class="model-card glass reveal active">
-                    <div class="model-card-header">
-                        <svg class="model-card-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2a4 4 0 0 0-4 4v1a4 4 0 0 0-3 6.7V18a4 4 0 0 0 4 4h6a4 4 0 0 0 4-4v-4.3A4 4 0 0 0 16 7V6a4 4 0 0 0-4-4z" stroke="currentColor" stroke-width="1.6"/></svg>
-                        <h3 class="model-card-name">${name}</h3>
-                        ${deleteBtn}
-                    </div>
-                    <div class="model-card-meta">
-                        ${paramLabel ? `<span class="model-tag">${paramLabel}</span>` : ''}
-                        ${family ? `<span class="model-tag model-tag-family">${family}</span>` : ''}
-                        ${quant ? `<span class="model-tag model-tag-quant">${quant}</span>` : ''}
-                    </div>
-                    <div class="model-card-size">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M6 12h4M16 12h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-                        <span>${size}</span>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    };
-
-    const loadModels = async () => {
-        const isAdmin = currentUser && currentUser.role === 'admin';
-        try {
-            // Admin usa endpoint autenticado, não-logado usa /status público
-            const controller = new AbortController();
-            const t = setTimeout(() => controller.abort(), 5000);
-            const url = isAdmin ? '/api/models' : '/status';
-            const fetchFn = isAdmin ? apiFetch : fetch;
-            const res = await fetchFn(url, { signal: controller.signal });
-            clearTimeout(t);
-            if (!res.ok) throw new Error();
-
-            const data = await res.json();
-            // /api/models retorna string JSON do Ollama, /status retorna objeto direto
-            const parsed = typeof data === 'string' ? JSON.parse(data) : data;
-            const models = (parsed && parsed.models) ? parsed.models : [];
-            renderModels(models, isAdmin);
-        } catch {
-            modelsGrid.style.display = 'none';
-            modelsEmpty.style.display = '';
-            modelsEmpty.querySelector('p').textContent = 'Não foi possível carregar os modelos.';
-            modelsEmpty.querySelector('.models-empty-sub').textContent = 'Verifique se o Ollama está rodando no servidor.';
-        }
-    };
-
-    // Modal "Baixar Modelo"
+    // Modal "Baixar Modelo" (mantido para admin, se disponível)
     if (pullModelBtn) pullModelBtn.addEventListener('click', () => {
-        pullModelError.textContent = '';
-        openModal(pullModelModal);
+        if (pullModelError) pullModelError.textContent = '';
+        if (pullModelModal) openModal(pullModelModal);
     });
 
-    document.querySelectorAll('.suggestion-chip').forEach(chip => {
-        chip.addEventListener('click', () => {
-            document.getElementById('pullModelName').value = chip.dataset.model;
-        });
-    });
-
-    pullModelForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        pullModelError.textContent = '';
-        const modelName = document.getElementById('pullModelName').value.trim();
-        if (!modelName) {
-            pullModelError.textContent = 'Digite o nome do modelo.';
-            return;
-        }
-
-        pullModelSubmit.disabled = true;
-        pullModelSubmit.innerHTML = '<span>Baixando... isso pode levar vários minutos</span>';
-
-        try {
-            const res = await apiFetch('/api/models/pull', {
-                method: 'POST',
-                body: JSON.stringify({ name: modelName })
+    if (pullModelForm) {
+        document.querySelectorAll('.suggestion-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const input = document.getElementById('pullModelName');
+                if (input) input.value = chip.dataset.model;
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Erro ao baixar modelo');
-            showToast('Modelo "' + modelName + '" baixado com sucesso!', 'success');
-            closeModal(pullModelModal);
-            pullModelForm.reset();
-            loadModels();
-        } catch (err) {
-            pullModelError.textContent = err.message;
-        } finally {
-            pullModelSubmit.disabled = false;
-            pullModelSubmit.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Baixar</span>';
-        }
-    });
+        });
+
+        pullModelForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (pullModelError) pullModelError.textContent = '';
+            const modelName = document.getElementById('pullModelName').value.trim();
+            if (!modelName) {
+                if (pullModelError) pullModelError.textContent = 'Digite o nome do modelo.';
+                return;
+            }
+
+            pullModelSubmit.disabled = true;
+            pullModelSubmit.innerHTML = '<span>Baixando... isso pode levar vários minutos</span>';
+
+            try {
+                const res = await apiFetch('/api/models/pull', {
+                    method: 'POST',
+                    body: JSON.stringify({ name: modelName })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Erro ao baixar modelo');
+                showToast('Modelo "' + modelName + '" baixado com sucesso!', 'success');
+                if (pullModelModal) closeModal(pullModelModal);
+                pullModelForm.reset();
+            } catch (err) {
+                if (pullModelError) pullModelError.textContent = err.message;
+            } finally {
+                pullModelSubmit.disabled = false;
+                pullModelSubmit.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Baixar</span>';
+            }
+        });
+    }
 
     window.deleteModel = async (modelName) => {
         if (!confirm('Remover o modelo "' + modelName + '" do servidor?')) return;
@@ -399,14 +338,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Erro ao remover');
             showToast('Modelo "' + modelName + '" removido!', 'success');
-            loadModels();
         } catch (err) {
             showToast(err.message, 'error');
         }
     };
-
-    loadModels();
-    setInterval(loadModels, 60000);
 
     /* ============================================================
        7. PARTÍCULAS NO CANVAS
