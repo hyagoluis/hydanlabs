@@ -44,7 +44,6 @@
                 <li><a href="#differentials">Diferenciais</a></li>
                 <li><a href="#models">Modelos</a></li>
                 <li><a href="#vision">Visão</a></li>
-                <li><a href="#stats-dashboard" class="nav-link-secondary">Monitoramento</a></li>
             </ul>
             <div class="nav-actions">
                 <!-- Botão de Acesso (muda entre Login/Conta/Admin via JS) -->
@@ -479,98 +478,6 @@
             <span class="section-tag">// NOSSA VISÃO</span>
             <h2 class="vision-title">"Não estamos apenas revendendo IA.<br>Estamos <span class="gradient-text">democratizando o acesso</span>."</h2>
             <p class="vision-text">A Hydan nasceu da convicção de que a inteligência artificial deve ser acessível a todos — não só a quem pode pagar caro por ela. Nosso auto-routing inteligente garante que você sempre tenha o melhor custo-benefício, sem abrir mão da qualidade.</p>
-        </div>
-    </section>
-
-    <!-- CTA / Contact -->
-    <!-- Monitoramento Section -->
-    <section class="monitoring section" id="stats-dashboard">
-        <div class="section-header reveal">
-            <span class="section-tag">// MONITORAMENTO</span>
-            <h2 class="section-title">Pulse da <span class="gradient-text">Hydan</span></h2>
-            <p class="section-subtitle">Acompanhe em tempo real a saúde do servidor e dos serviços de IA.</p>
-        </div>
-
-        <!-- Conteúdo protegido -->
-        <div class="monitor-protected" id="monitorProtected">
-            <!-- Status dos serviços -->
-            <div class="monitor-grid reveal" id="servicesGrid">
-                <!-- Preenchido via JS -->
-            </div>
-
-            <!-- Métricas do sistema (apenas admin) -->
-            <div class="metrics-grid reveal" id="metricsGrid">
-                <div class="metric-card glass">
-                    <div class="metric-header">
-                        <span class="metric-label">CPU</span>
-                        <span class="metric-value" id="cpuValue">--</span>
-                    </div>
-                    <div class="metric-bar"><div class="metric-bar-fill" id="cpuBar"></div></div>
-                    <div class="metric-sub" id="cpuCores">-- núcleos</div>
-                </div>
-
-                <div class="metric-card glass">
-                    <div class="metric-header">
-                        <span class="metric-label">Memória RAM</span>
-                        <span class="metric-value" id="ramValue">--</span>
-                    </div>
-                    <div class="metric-bar"><div class="metric-bar-fill" id="ramBar"></div></div>
-                    <div class="metric-sub" id="ramDetail">-- / --</div>
-                </div>
-
-                <div class="metric-card glass">
-                    <div class="metric-header">
-                        <span class="metric-label">Disco</span>
-                        <span class="metric-value" id="diskValue">--</span>
-                    </div>
-                    <div class="metric-bar"><div class="metric-bar-fill" id="diskBar"></div></div>
-                    <div class="metric-sub" id="diskDetail">-- / --</div>
-                </div>
-
-                <div class="metric-card glass" id="gpuCard" style="display:none">
-                    <div class="metric-header">
-                        <span class="metric-label">GPU</span>
-                        <span class="metric-value" id="gpuValue">--</span>
-                    </div>
-                    <div class="metric-bar"><div class="metric-bar-fill" id="gpuBar"></div></div>
-                    <div class="metric-sub" id="gpuDetail">--</div>
-                </div>
-            </div>
-
-            <!-- Informações extras -->
-            <div class="monitor-info reveal" id="monitorInfo">
-                <div class="info-item glass">
-                    <span class="info-label">Uptime</span>
-                    <span class="info-value" id="uptimeValue">--</span>
-                </div>
-                <div class="info-item glass">
-                    <span class="info-label">Hostname</span>
-                    <span class="info-value" id="hostnameValue">--</span>
-                </div>
-                <div class="info-item glass">
-                    <span class="info-label">Rede ↓</span>
-                    <span class="info-value" id="netRxValue">--</span>
-                </div>
-                <div class="info-item glass">
-                    <span class="info-label">Rede ↑</span>
-                    <span class="info-value" id="netTxValue">--</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Overlay de login (mostrado se não autenticado) -->
-        <div class="monitor-locked" id="monitorLocked">
-            <div class="lock-card glass">
-                <div class="lock-icon">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="1.6"/></svg>
-                </div>
-                <h3 class="lock-title">Área Restrita</h3>
-                <p class="lock-text">O monitoramento está disponível apenas para administradores autenticados.</p>
-                <button class="btn btn-primary" id="lockLoginBtn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    Fazer Login
-                </button>
-            </div>
         </div>
     </section>
 
