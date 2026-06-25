@@ -676,6 +676,21 @@ def delete_model(model_name):
     return jsonify({"message": f"Modelo '{model_name}' removido com sucesso!"})
 
 # ============================================================
+# ERROR HANDLERS — sempre retornar JSON em vez de HTML
+# ============================================================
+@APP.errorhandler(404)
+def handle_404(e):
+    return jsonify({"error": "Endpoint não encontrado"}), 404
+
+@APP.errorhandler(405)
+def handle_405(e):
+    return jsonify({"error": "Método não permitido"}), 405
+
+@APP.errorhandler(500)
+def handle_500(e):
+    return jsonify({"error": "Erro interno do servidor", "details": str(e)}), 500
+
+# ============================================================
 # MAIN
 # ============================================================
 def main():

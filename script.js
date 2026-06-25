@@ -16,7 +16,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const headers = { ...(opts.headers || {}) };
         if (token) headers['Authorization'] = 'Bearer ' + token;
         if (opts.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
-        return await fetch(url, { ...opts, headers, credentials: 'include' });
+
+        const res = await fetch(url, { ...opts, headers, credentials: 'include' });
+
+        // Verifica se a resposta é JSON antes de tentar parsear
+        // Se for HTML (erro 500, 404 do Flask, 502 do Nginx), dá erro descritivo
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json') && !contentType.includes('text/json')) {
+            const text = await res.text();
+            const preview = text.substring(0, 120).replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+            throw new Error(
+                `Servidor retornou HTML (status ${res.status}). ` +
+                `Verifique se o backend Flask está rodando em :8081. ` +
+                `Resposta: ${preview}`
+            );
+        }
+
+        return res;
     };
 
     const showToast = (msg, type = '') => {
