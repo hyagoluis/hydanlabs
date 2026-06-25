@@ -35,6 +35,7 @@ import sys
 import time
 import uuid
 import hmac
+import json
 import socket
 import hashlib
 import sqlite3
@@ -74,7 +75,10 @@ JWT_EXPIRY = 86400  # 24 horas
 DB_PATH = "/opt/hydan-auth/data.db"
 
 ADMIN_USER = os.environ.get("HYDAN_ADMIN_USER", "admin")
-ADMIN_PASS = os.environ.get("HYDAN_ADMIN_PASS", "hydan2025")
+ADMIN_PASS = os.environ.get("HYDAN_ADMIN_PASS")
+if not ADMIN_PASS:
+    print("[Hydan-Auth] ERRO: HYDAN_ADMIN_PASS não foi definida! Use uma senha forte.")
+    sys.exit(1)
 WEBHOOK_SECRET = os.environ.get("HYDAN_WEBHOOK_SECRET", "")
 REPO_DIR = os.environ.get("HYDAN_REPO_DIR", os.path.expanduser("~/hydanlabs"))
 SITE_DIR = "/var/www/hydan-labs"
@@ -229,11 +233,18 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated
 
+def _get_real_ip():
+    """Pega o IP real do cliente, considerando proxy reverso (Nginx)."""
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.remote_addr or ""
+
 def log_action(user_id, username, action):
     db = get_db()
     db.execute(
         "INSERT INTO access_logs (user_id, username, action, ip_address, user_agent, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
-        (user_id, username, action, request.remote_addr, request.headers.get("User-Agent", "")[:200], datetime.now(timezone.utc).isoformat())
+        (user_id, username, action, _get_real_ip(), request.headers.get("User-Agent", "")[:200], datetime.now(timezone.utc).isoformat())
     )
     db.commit()
 
@@ -268,9 +279,13 @@ def login():
     if not username or not password:
         return jsonify({"error": "Username e senha obrigatórios"}), 400
 
-    ip = request.remote_addr
+    ip = _get_real_ip()
     if not check_rate_limit(ip):
         return jsonify({"error": "Muitas tentativas. Tente novamente em 1 minuto."}), 429
+
+    # Validar username (alfanumérico)
+    if not username.isalnum():
+        return jsonify({"error": "Username deve conter apenas letras e números"}), 400
 
     db = get_db()
     user = db.execute("SELECT * FROM users WHERE username = ? AND active = 1", (username,)).fetchone()
@@ -287,8 +302,8 @@ def login():
         "token": token,
         "user": {"id": user["id"], "username": user["username"], "role": user["role"]}
     })
-    resp.set_cookie("hydan_token", token, httponly=True, secure=request.is_secure,
-                     samesite="Lax", max_age=JWT_EXPIRY, path="/")
+    resp.set_cookie("hydan_token", token, httponly=True, secure=True,
+                     samesite="Strict", max_age=JWT_EXPIRY, path="/")
     return resp
 
 @APP.route("/auth/logout", methods=["POST"])
@@ -328,8 +343,10 @@ def create_user():
 
     if not username or not password:
         return jsonify({"error": "Username e senha obrigatórios"}), 400
-    if len(password) < 6:
-        return jsonify({"error": "Senha deve ter no mínimo 6 caracteres"}), 400
+    if not username.isalnum():
+        return jsonify({"error": "Username deve conter apenas letras e números"}), 400
+    if len(password) < 8:
+        return jsonify({"error": "Senha deve ter no mínimo 8 caracteres"}), 400
     if role not in ("admin", "user"):
         role = "user"
 
@@ -363,8 +380,8 @@ def update_user(user_id):
     if role and role in ("admin", "user"):
         db.execute("UPDATE users SET role = ? WHERE id = ?", (role, user_id))
     if new_password:
-        if len(new_password) < 6:
-            return jsonify({"error": "Senha deve ter no mínimo 6 caracteres"}), 400
+        if len(new_password) < 8:
+            return jsonify({"error": "Senha deve ter no mínimo 8 caracteres"}), 400
         pw_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
         db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (pw_hash, user_id))
 
@@ -396,8 +413,8 @@ def change_password():
 
     if not current or not new_pw:
         return jsonify({"error": "Preencha a senha atual e a nova"}), 400
-    if len(new_pw) < 6:
-        return jsonify({"error": "Nova senha deve ter no mínimo 6 caracteres"}), 400
+    if len(new_pw) < 8:
+        return jsonify({"error": "Nova senha deve ter no mínimo 8 caracteres"}), 400
 
     db = get_db()
     user = db.execute("SELECT id, password_hash FROM users WHERE id = ?", (g.current_user["user_id"],)).fetchone()
@@ -634,7 +651,7 @@ def _ollama_request(path, method="GET", body=None, stream=False):
     except HTTPError as e:
         return e.read().decode("utf-8", errors="replace"), e.code
     except (URLError, Exception) as e:
-        return f'{{"error": "Ollama indisponível: {str(e)}"}}', 502
+        return json.dumps({"error": f"Ollama indisponível: {str(e)}"}), 502
 
 @APP.route("/api/models", methods=["GET"])
 @admin_required
@@ -654,7 +671,7 @@ def pull_model():
 
     log_action(g.current_user["user_id"], g.current_user["username"], f"pull_model:{model_name}")
 
-    body = f'{{"name": "{model_name}", "stream": false}}'
+    body = json.dumps({"name": model_name, "stream": False})
     resp_data, status = _ollama_request("/api/pull", method="POST", body=body)
 
     if status != 200:
@@ -662,12 +679,13 @@ def pull_model():
 
     return jsonify({"message": f"Modelo '{model_name}' baixado com sucesso!"})
 
+
 @APP.route("/api/models/<model_name>", methods=["DELETE"])
 @admin_required
 def delete_model(model_name):
     log_action(g.current_user["user_id"], g.current_user["username"], f"delete_model:{model_name}")
 
-    body = f'{{"name": "{model_name}"}}'
+    body = json.dumps({"name": model_name})
     resp_data, status = _ollama_request("/api/delete", method="DELETE", body=body)
 
     if status != 200:

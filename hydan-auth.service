@@ -9,6 +9,8 @@ WorkingDirectory=/opt/hydan-auth
 ExecStart=/opt/hydan-auth/venv/bin/python /opt/hydan-auth/auth.py
 Restart=always
 RestartSec=3
+# ⚠ Configure as credenciais abaixo com valores SEGUROS antes de iniciar!
+# Gere um webhook secret com: openssl rand -hex 32
 Environment=HYDAN_ADMIN_USER=admin
 Environment=HYDAN_ADMIN_PASS=hydan2025
 Environment=HYDAN_WEBHOOK_SECRET=CHANGE_ME_GERAR_UM_SECRET_UNICO
