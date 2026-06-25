@@ -41,7 +41,7 @@ sudo chown -R $USER:$USER /var/www/hydan-labs
 # 4. Copiar arquivos
 echo -e "${YELLOW}[4/5] Copiando arquivos...${NC}"
 # Copia tudo, exceto a pasta deploy/ e .git/
-cp -r index.html styles.css script.js /var/www/hydan-labs/ 2>/dev/null || true
+cp -r index.html styles.css script.js deploy/404.html /var/www/hydan-labs/ 2>/dev/null || true
 echo -e "${GREEN}✓ Arquivos copiados para /var/www/hydan-labs/${NC}"
 
 # 5. Configurar Nginx

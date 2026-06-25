@@ -12,17 +12,14 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ff2d8b'/%3E%3Cstop offset='1' stop-color='%23ff7eb6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='%230a0a0a'/%3E%3Cpath d='M30 25h8v18h24V25h8v50h-8V50H38v25h-8z' fill='url(%23g)'/%3E%3C/svg%3E">
 </head>
 <body>
-    <!-- Canvas de partículas de fundo -->
     <canvas id="particles"></canvas>
 
-    <!-- Overlay de gradientes -->
     <div class="gradient-overlay"></div>
 
-    <!-- Navbar -->
     <nav class="navbar" id="navbar">
         <div class="nav-container">
             <a href="#hero" class="nav-logo">
-                <!-- Logo SVG -->
+
                 <svg class="logo-mark" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <defs>
                         <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -46,7 +43,6 @@
                 <li><a href="#vision">Visão</a></li>
             </ul>
             <div class="nav-actions">
-                <!-- Botão de Acesso (muda entre Login/Conta/Admin via JS) -->
                 <div class="nav-account" id="navAccount">
                     <button class="btn-account" id="accountBtn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/></svg>
@@ -85,7 +81,6 @@
         </div>
     </nav>
 
-    <!-- Hero Section -->
     <section class="hero" id="hero">
         <div class="hero-content">
             <div class="hero-badge reveal">
@@ -115,7 +110,6 @@
             </div>
         </div>
 
-        <!-- Terminal animado mostrando a Hydan em ação -->
         <div class="hero-visual reveal">
             <div class="orb orb-1"></div>
             <div class="orb orb-2"></div>
@@ -130,7 +124,7 @@
                 </div>
                 <div class="terminal-body" id="terminalBody">
                     <div class="terminal-line"><span class="prompt">hydan@labs</span><span class="prompt-sep">:</span><span class="prompt-path">~</span><span class="prompt-sep">$</span></div>
-                    <!-- Conteúdo injetado via JS -->
+
                 </div>
             </div>
         </div>
@@ -141,7 +135,6 @@
         </div>
     </section>
 
-    <!-- Stats -->
     <section class="stats reveal">
         <div class="stat-item">
             <div class="stat-number" data-target="100" data-suffix="%">0</div>
@@ -159,7 +152,6 @@
         </div>
     </section>
 
-    <!-- About Section -->
     <section class="about section" id="about">
         <div class="section-header reveal">
             <span class="section-tag">// SOBRE NÓS</span>
@@ -190,7 +182,6 @@
         </div>
     </section>
 
-    <!-- Features Section -->
     <section class="features section" id="features">
         <div class="section-header reveal">
             <span class="section-tag">// RECURSOS</span>
@@ -233,7 +224,6 @@
         </div>
     </section>
 
-    <!-- Pricing Section -->
     <section class="pricing section" id="pricing">
         <div class="section-header reveal">
             <span class="section-tag">// PLANOS</span>
@@ -241,7 +231,7 @@
             <p class="section-subtitle">Preços honestos, sem surpresas. Comece pequeno e escale conforme precisa.</p>
         </div>
         <div class="pricing-grid">
-            <!-- Trainee -->
+
             <div class="pricing-card glass reveal">
                 <div class="pricing-header">
                     <h3 class="pricing-name">Trainee</h3>
@@ -257,7 +247,6 @@
                 <a href="#contact" class="btn btn-ghost btn-block">Assinar</a>
             </div>
 
-            <!-- Junior -->
             <div class="pricing-card glass reveal">
                 <div class="pricing-header">
                     <h3 class="pricing-name">Junior</h3>
@@ -275,7 +264,6 @@
                 <a href="#contact" class="btn btn-ghost btn-block">Assinar</a>
             </div>
 
-            <!-- Pleno (Popular) -->
             <div class="pricing-card glass popular reveal">
                 <div class="pricing-badge">Mais Popular</div>
                 <div class="pricing-header">
@@ -296,7 +284,6 @@
                 <a href="#contact" class="btn btn-primary btn-block">Assinar</a>
             </div>
 
-            <!-- Senior -->
             <div class="pricing-card glass reveal">
                 <div class="pricing-header">
                     <h3 class="pricing-name">Senior</h3>
@@ -316,7 +303,6 @@
                 <a href="#contact" class="btn btn-ghost btn-block">Assinar</a>
             </div>
 
-            <!-- Lead -->
             <div class="pricing-card glass reveal">
                 <div class="pricing-header">
                     <h3 class="pricing-name">Lead</h3>
@@ -338,7 +324,6 @@
         </div>
     </section>
 
-    <!-- Differentials Section -->
     <section class="differentials section" id="differentials">
         <div class="section-header reveal">
             <span class="section-tag">// DIFERENCIAIS</span>
@@ -391,7 +376,6 @@
         </div>
     </section>
 
-    <!-- Models Section -->
     <section class="models section" id="models">
         <div class="section-header reveal">
             <span class="section-tag">// MODELOS</span>
@@ -472,7 +456,6 @@
         </div>
     </section>
 
-    <!-- Vision Section -->
     <section class="vision section" id="vision">
         <div class="vision-container reveal">
             <span class="section-tag">// NOSSA VISÃO</span>
@@ -481,7 +464,6 @@
         </div>
     </section>
 
-    <!-- CTA Section -->
     <section class="contact section" id="contact">
         <div class="contact-card glass reveal">
             <h2 class="contact-title">Pronto para conversar com a <span class="gradient-text">Hydan</span>?</h2>
@@ -514,7 +496,6 @@
         </div>
     </footer>
 
-    <!-- ================= MODAL DE LOGIN ================= -->
     <div class="modal-overlay" id="loginModal">
         <div class="modal glass">
             <button class="modal-close" data-close-modal aria-label="Fechar">
@@ -546,8 +527,6 @@
             </form>
         </div>
     </div>
-
-    <!-- ================= MODAL BAIXAR MODELO ================= -->
     <div class="modal-overlay" id="pullModelModal">
         <div class="modal glass">
             <button class="modal-close" data-close-modal aria-label="Fechar">
@@ -643,7 +622,6 @@
         </div>
     </div>
 
-    <!-- ================= PAINEL ADMIN ================= -->
     <div class="admin-panel" id="adminPanel">
         <div class="admin-overlay" data-close-admin></div>
         <div class="admin-container glass">
@@ -675,7 +653,6 @@
             </div>
 
             <div class="admin-body">
-                <!-- TAB: USUÁRIOS -->
                 <div class="admin-content active" id="tab-users">
                     <div class="admin-section-header">
                         <h3>Gestão de Usuários</h3>
@@ -691,12 +668,11 @@
                                     <th>Usuário</th><th>Role</th><th>Criado em</th><th>Ações</th>
                                 </tr>
                             </thead>
-                            <tbody id="usersTableBody"><!-- preenchido via JS --></tbody>
+                            <tbody id="usersTableBody"></tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- TAB: MÉTRICAS -->
                 <div class="admin-content" id="tab-metrics">
                     <div class="admin-section-header">
                         <h3>Métricas do Sistema</h3>
@@ -705,10 +681,27 @@
                             <button class="btn btn-ghost btn-sm" data-restart="openwebui">Reiniciar OpenWebUI</button>
                         </div>
                     </div>
-                    <div class="admin-metrics" id="adminMetrics"><!-- preenchido via JS --></div>
+                    <div class="admin-metrics" id="adminMetrics"></div>
+
+                    <!-- Gráficos de histórico (últimos 5 min) -->
+                    <div class="charts-section">
+                        <div class="chart-card glass">
+                            <div class="chart-header">
+                                <span class="chart-title">CPU — últimos 5 min</span>
+                                <span class="chart-value" id="chartCpuValue">--%</span>
+                            </div>
+                            <canvas id="cpuChart" height="80"></canvas>
+                        </div>
+                        <div class="chart-card glass">
+                            <div class="chart-header">
+                                <span class="chart-title">RAM — últimos 5 min</span>
+                                <span class="chart-value" id="chartRamValue">--%</span>
+                            </div>
+                            <canvas id="ramChart" height="80"></canvas>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- TAB: LOGS -->
                 <div class="admin-content" id="tab-logs">
                     <div class="admin-section-header">
                         <h3>Logs de Acesso</h3>
@@ -717,12 +710,11 @@
                     <div class="table-wrap">
                         <table class="admin-table" id="logsTable">
                             <thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th><th>IP</th></tr></thead>
-                            <tbody id="logsTableBody"><!-- preenchido via JS --></tbody>
+                            <tbody id="logsTableBody"></tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- TAB: CONFIGURAÇÕES -->
                 <div class="admin-content" id="tab-settings">
                     <div class="admin-section-header"><h3>Configurações do Site</h3></div>
                     <form id="settingsForm" class="settings-form">
@@ -742,7 +734,6 @@
         </div>
     </div>
 
-    <!-- Toast container (dinâmico via JS) -->
     <div class="toast-container" id="toastContainer"></div>
 
     <a href="#hero" class="back-to-top" id="backToTop" aria-label="Voltar ao topo">
@@ -750,12 +741,12 @@
     </a>
 
     <script>
-        // Aplica o tema imediatamente (antes do CSS carregar) p/ evitar flash
         (function() {
             const saved = localStorage.getItem('hydan-theme');
             if (saved === 'light') document.documentElement.setAttribute('data-theme', 'light');
         })();
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

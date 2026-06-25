@@ -72,9 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (percent >= 75) bar.classList.add('warn');
     };
 
-    /* ============================================================
-       1. THEME TOGGLE
-       ============================================================ */
+
     const themeToggle = document.getElementById('themeToggle');
     const root = document.documentElement;
 
@@ -86,9 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('hydan-theme', next);
     });
 
-    /* ============================================================
-       2. NAVBAR SCROLL + MENU MOBILE + BACK TO TOP
-       ============================================================ */
+
     const navbar = document.getElementById('navbar');
     const backToTop = document.getElementById('backToTop');
 
@@ -119,9 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    /* ============================================================
-       3. REVEAL ON SCROLL
-       ============================================================ */
+
     const revealElements = document.querySelectorAll('.reveal');
     const revealObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry, index) => {
@@ -133,9 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
     revealElements.forEach(el => revealObserver.observe(el));
 
-    /* ============================================================
-       4. CONTADORES (STATS)
-       ============================================================ */
+
     const statNumbers = document.querySelectorAll('.stat-number');
     const animateCounter = (el) => {
         const target = el.getAttribute('data-target');
@@ -164,9 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { threshold: 0.5 });
     statNumbers.forEach(el => statsObserver.observe(el));
 
-    /* ============================================================
-       5. TERMINAL ANIMADO NO HERO
-       ============================================================ */
     const terminalBody = document.getElementById('terminalBody');
     const scenes = [
         {
@@ -242,9 +231,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { threshold: 0.3 });
     if (terminalBody) terminalObserver.observe(terminalBody);
 
-    /* ============================================================
-       6. STATUS BADGE (Ollama online check)
-       ============================================================ */
     const statusDot = document.querySelector('#statusIndicator .status-dot');
     const statusText = document.querySelector('#statusIndicator .status-text');
     const setStatus = (state, text) => {
@@ -265,11 +251,6 @@ document.addEventListener('DOMContentLoaded', () => {
     checkStatus();
     setInterval(checkStatus, 30000);
 
-    /* ============================================================
-       6B. MODELS DASHBOARD (estático — sem Ollama)
-       A seção de modelos agora é renderizada estaticamente no HTML.
-       Os endpoints /api/models continuam disponíveis no backend.
-       ============================================================ */
     const modelsGrid = document.getElementById('modelsGrid');
     const modelsEmpty = document.getElementById('modelsEmpty');
     const pullModelBtn = document.getElementById('pullModelBtn');
@@ -283,10 +264,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pullModelBtn) pullModelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
     };
 
-    // Não busca mais do Ollama — modelos são estáticos no HTML.
     const loadModels = () => {};
 
-    // Modal "Baixar Modelo" (mantido para admin, se disponível)
     if (pullModelBtn) pullModelBtn.addEventListener('click', () => {
         if (pullModelError) pullModelError.textContent = '';
         if (pullModelModal) openModal(pullModelModal);
@@ -343,9 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    /* ============================================================
-       7. PARTÍCULAS NO CANVAS
-       ============================================================ */
+
     const canvas = document.getElementById('particles');
     const ctx = canvas.getContext('2d');
     let particles = [];
@@ -440,9 +417,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     animate();
 
-    /* ============================================================
-       8. SMOOTH SCROLL
-       ============================================================ */
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             const targetId = this.getAttribute('href');
@@ -455,15 +429,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    /* ============================================================
-       9. ANO NO RODAPÉ
-       ============================================================ */
     const yearEl = document.getElementById('year');
     if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-    /* ============================================================
-       10. AUTENTICAÇÃO
-       ============================================================ */
+
     const accountBtn = document.getElementById('accountBtn');
     const accountLabel = document.getElementById('accountLabel');
     const accountDropdown = document.getElementById('accountDropdown');
@@ -476,11 +445,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginModal = document.getElementById('loginModal');
     const passwordModal = document.getElementById('passwordModal');
     const adminPanel = document.getElementById('adminPanel');
-
-    const monitorProtected = document.getElementById('monitorProtected');
-    const monitorLocked = document.getElementById('monitorLocked');
-    const metricsGrid = document.getElementById('metricsGrid');
-    const monitorInfo = document.getElementById('monitorInfo');
 
     let currentUser = null;
 
@@ -528,9 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     ddLogoutBtn.addEventListener('click', () => doLogout());
 
-    /* ============================================================
-       11. LOGIN
-       ============================================================ */
+
     const loginForm = document.getElementById('loginForm');
     const loginError = document.getElementById('loginError');
     const loginSubmit = document.getElementById('loginSubmit');
@@ -566,9 +528,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    /* ============================================================
-       12. LOGOUT
-       ============================================================ */
     const doLogout = async () => {
         try { await apiFetch('/auth/logout', { method: 'POST' }); } catch {}
         setToken(null);
@@ -578,9 +537,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Você saiu da conta.');
     };
 
-    /* ============================================================
-       13. CHECK SESSION
-       ============================================================ */
     const checkSession = async () => {
         if (!getToken()) { applyAuthState(); return; }
         try {
@@ -591,42 +547,21 @@ document.addEventListener('DOMContentLoaded', () => {
         applyAuthState();
     };
 
-    /* ============================================================
-       14. APLICAR ESTADO DE AUTENTICAÇÃO
-       ============================================================ */
     const applyAuthState = () => {
         if (currentUser) {
             accountLabel.textContent = currentUser.username;
             ddUserName.textContent = currentUser.username;
             ddUserRole.textContent = currentUser.role === 'admin' ? 'Administrador' : 'Usuário';
             ddAdminBtn.style.display = currentUser.role === 'admin' ? 'flex' : 'none';
-
-            monitorProtected.classList.remove('hidden');
-            monitorLocked.classList.add('hidden');
-
-            if (currentUser.role !== 'admin') {
-                if (metricsGrid) metricsGrid.style.display = 'none';
-                if (monitorInfo) monitorInfo.style.display = 'none';
-            } else {
-                if (metricsGrid) metricsGrid.style.display = '';
-                if (monitorInfo) monitorInfo.style.display = '';
-            }
         } else {
             accountLabel.textContent = 'Acessar';
             ddUserName.textContent = '--';
             ddUserRole.textContent = '--';
-
-            monitorProtected.classList.add('hidden');
-            monitorLocked.classList.remove('hidden');
         }
-        // Atualiza botões admin da seção de modelos e recarrega a lista
         updateModelsAdminUI();
         loadModels();
     };
 
-    /* ============================================================
-       15. ALTERAR SENHA
-       ============================================================ */
     const passwordForm = document.getElementById('passwordForm');
     const passwordError = document.getElementById('passwordError');
 
@@ -651,9 +586,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    /* ============================================================
-       16. PAINEL ADMIN
-       ============================================================ */
     const openAdminPanel = async () => {
         adminPanel.classList.add('show');
         await loadUsers();
@@ -777,10 +709,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    /* ============================================================
-       17. ADMIN METRICS TAB
-       ============================================================ */
     let adminMetricsInterval = null;
+    let cpuChart = null, ramChart = null;
+    const MAX_POINTS = 100; // ~5 min a cada 3s
+    const cpuHistory = [];
+    const ramHistory = [];
+    const timeLabels = [];
+
+    const initCharts = () => {
+        if (typeof Chart === 'undefined' || cpuChart) return;
+        const cpuCanvas = document.getElementById('cpuChart');
+        const ramCanvas = document.getElementById('ramChart');
+        if (!cpuCanvas || !ramCanvas) return;
+
+        const baseConfig = (color) => ({
+            type: 'line',
+            data: { labels: [], datasets: [{
+                data: [], borderColor: color, backgroundColor: color + '22',
+                borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0
+            }] },
+            options: {
+                responsive: true, animation: false,
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                scales: {
+                    x: { display: false },
+                    y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#6a6a72', font: { size: 10 }, callback: (v) => v + '%' } }
+                }
+            }
+        });
+
+        cpuChart = new Chart(cpuCanvas, baseConfig('#ff2d8b'));
+        ramChart = new Chart(ramCanvas, baseConfig('#ff7eb6'));
+    };
+
     const loadAdminMetrics = async () => {
         const container = document.getElementById('adminMetrics');
         container.innerHTML = '<div style="color:var(--text-dim)">Carregando métricas...</div>';
@@ -800,6 +761,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="admin-metric-card"><div class="admin-metric-label">Uptime</div><div class="admin-metric-value">${formatUptime(data.uptime_seconds)}</div><div style="color:var(--text-dim);font-size:0.8rem">${data.hostname}</div></div>
                     ${gpu}
                 `;
+
+                // Atualizar gráficos
+                initCharts();
+                if (cpuChart) {
+                    const cpuPct = parseFloat(data.cpu.percent.toFixed(1));
+                    const ramPct = parseFloat(data.memory.percent.toFixed(1));
+                    timeLabels.push(new Date().toLocaleTimeString('pt-BR', { hour12: false }));
+                    if (timeLabels.length > MAX_POINTS) timeLabels.shift();
+                    cpuHistory.push(cpuPct);
+                    ramHistory.push(ramPct);
+                    if (cpuHistory.length > MAX_POINTS) cpuHistory.shift();
+                    if (ramHistory.length > MAX_POINTS) ramHistory.shift();
+
+                    cpuChart.data.labels = [...timeLabels];
+                    cpuChart.data.datasets[0].data = [...cpuHistory];
+                    cpuChart.update('none');
+                    ramChart.data.labels = [...timeLabels];
+                    ramChart.data.datasets[0].data = [...ramHistory];
+                    ramChart.update('none');
+
+                    const cv = document.getElementById('chartCpuValue');
+                    const rv = document.getElementById('chartRamValue');
+                    if (cv) cv.textContent = cpuPct + '%';
+                    if (rv) rv.textContent = ramPct + '%';
+                }
             } catch (err) {
                 container.innerHTML = `<div style="color:#f87171">${err.message}</div>`;
             }
@@ -830,9 +816,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    /* ============================================================
-       18. LOGS TAB
-       ============================================================ */
     const loadLogs = async () => {
         const tbody = document.getElementById('logsTableBody');
         tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-dim)">Carregando...</td></tr>';
@@ -858,9 +841,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     document.getElementById('refreshLogsBtn').addEventListener('click', loadLogs);
 
-    /* ============================================================
-       19. SETTINGS TAB
-       ============================================================ */
     const loadSettings = async () => {
         try {
             const res = await apiFetch('/api/settings');
@@ -889,119 +869,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    /* ============================================================
-       20. MONITORAMENTO (fetch protegido)
-       ============================================================ */
-    const serviceIcons = {
-        ollama: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2a4 4 0 0 0-4 4v1a4 4 0 0 0-3 6.7V18a4 4 0 0 0 4 4h6a4 4 0 0 0 4-4v-4.3A4 4 0 0 0 16 7V6a4 4 0 0 0-4-4z" stroke="currentColor" stroke-width="1.6"/></svg>',
-        openwebui: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 9h18M8 21h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
-        hermes: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>'
-    };
-
-    const renderServices = (services) => {
-        const grid = document.getElementById('servicesGrid');
-        if (!grid) return;
-        grid.innerHTML = services.map(s => `
-            <div class="service-card">
-                <div class="service-icon ${s.running ? 'running' : 'stopped'}">
-                    ${serviceIcons[s.type] || serviceIcons.ollama}
-                </div>
-                <div class="service-info">
-                    <div class="service-name">${s.name}</div>
-                    <div class="service-status">
-                        <span class="service-status-dot ${s.running ? 'on' : 'off'}"></span>
-                        ${s.running ? 'Online' : 'Offline'}${s.port ? ' · :' + s.port : ''}
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    };
-
-    const renderMetrics = (data) => {
-        const isAdmin = currentUser && currentUser.role === 'admin';
-        if (!isAdmin) return;
-
-        const cpuValue = document.getElementById('cpuValue');
-        const cpuBar = document.getElementById('cpuBar');
-        const cpuPct = data.cpu.percent;
-        if (cpuValue) cpuValue.textContent = cpuPct.toFixed(1) + '%';
-        if (cpuBar) { cpuBar.style.width = cpuPct + '%'; setBarClass(cpuBar, cpuPct); }
-        const cpuCores = document.getElementById('cpuCores');
-        if (cpuCores) cpuCores.textContent = `${data.cpu.cores} núcleos · ${data.cpu.threads} threads`;
-
-        const ramPct = data.memory.percent;
-        const ramValue = document.getElementById('ramValue');
-        const ramBar = document.getElementById('ramBar');
-        if (ramValue) ramValue.textContent = ramPct.toFixed(1) + '%';
-        if (ramBar) { ramBar.style.width = ramPct + '%'; setBarClass(ramBar, ramPct); }
-        const ramDetail = document.getElementById('ramDetail');
-        if (ramDetail) ramDetail.textContent = `${formatBytes(data.memory.used)} / ${formatBytes(data.memory.total)}`;
-
-        const diskPct = data.disk.percent;
-        const diskValue = document.getElementById('diskValue');
-        const diskBar = document.getElementById('diskBar');
-        if (diskValue) diskValue.textContent = diskPct.toFixed(1) + '%';
-        if (diskBar) { diskBar.style.width = diskPct + '%'; setBarClass(diskBar, diskPct); }
-        const diskDetail = document.getElementById('diskDetail');
-        if (diskDetail) diskDetail.textContent = `${formatBytes(data.disk.used)} / ${formatBytes(data.disk.total)}`;
-
-        if (data.gpu && Array.isArray(data.gpu) && data.gpu.length > 0) {
-            const gpuCard = document.getElementById('gpuCard');
-            if (gpuCard) gpuCard.style.display = '';
-            const g = data.gpu[0];
-            const gpuValue = document.getElementById('gpuValue');
-            const gpuBar = document.getElementById('gpuBar');
-            if (gpuValue) gpuValue.textContent = g.utilization + '%';
-            if (gpuBar) { gpuBar.style.width = g.utilization + '%'; setBarClass(gpuBar, g.utilization); }
-            const gpuDetail = document.getElementById('gpuDetail');
-            if (gpuDetail) gpuDetail.textContent = `${g.name} · ${g.temperature}°C · ${formatBytes(g.memory_used)}/${formatBytes(g.memory_total)}`;
-        }
-
-        const uptime = document.getElementById('uptimeValue');
-        if (uptime) uptime.textContent = formatUptime(data.uptime_seconds);
-        const hostname = document.getElementById('hostnameValue');
-        if (hostname) hostname.textContent = data.hostname;
-        const netRx = document.getElementById('netRxValue');
-        if (netRx) netRx.textContent = formatBytes(data.network.bytes_recv);
-        const netTx = document.getElementById('netTxValue');
-        if (netTx) netTx.textContent = formatBytes(data.network.bytes_sent);
-    };
-
-    const fetchMetrics = async () => {
-        if (!currentUser) return;
-        try {
-            const controller = new AbortController();
-            const t = setTimeout(() => controller.abort(), 4000);
-            const res = await apiFetch('/api/metrics', { signal: controller.signal });
-            clearTimeout(t);
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const data = await res.json();
-            renderMetrics(data);
-            renderServices(data.services);
-        } catch (err) {
-            const grid = document.getElementById('servicesGrid');
-            if (grid && grid.children.length === 0) {
-                grid.innerHTML = '<div class="monitor-loading">⚠️ Backend offline. Verifique o serviço hydan-auth.</div>';
-            }
-        }
-    };
-
-    const metricsSection = document.getElementById('stats-dashboard');
-    let metricsStarted = false;
-    const metricsObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting && !metricsStarted && currentUser) {
-                metricsStarted = true;
-                fetchMetrics();
-                setInterval(() => { if (currentUser) fetchMetrics(); }, 3000);
-            }
-        });
-    }, { threshold: 0.1 });
-    if (metricsSection) metricsObserver.observe(metricsSection);
-
-    /* ============================================================
-       21. INIT — Verifica sessão ao carregar
-       ============================================================ */
     checkSession();
 
 });

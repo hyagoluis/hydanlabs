@@ -93,7 +93,6 @@ body {
         radial-gradient(ellipse at 80% 100%, rgba(255, 126, 182, 0.08) 0%, transparent 50%);
 }
 
-/* ===== NAVBAR ===== */
 .navbar {
     position: fixed;
     top: 0;
@@ -204,7 +203,6 @@ body {
     transform: translateY(-2px);
 }
 
-/* ===== NAV ACTIONS (toggle + menu mobile) ===== */
 .nav-actions {
     display: flex;
     align-items: center;
@@ -272,7 +270,6 @@ body {
     transform: translateY(-7px) rotate(-45deg);
 }
 
-/* ===== HERO ===== */
 .hero {
     position: relative;
     z-index: 2;
@@ -324,7 +321,6 @@ body {
     background: rgba(0, 0, 0, 0.15);
 }
 
-/* ===== STATUS INDICATOR ===== */
 .status-indicator {
     display: inline-flex;
     align-items: center;
@@ -443,7 +439,6 @@ body {
     font-size: 1.1rem;
 }
 
-/* ===== HERO VISUAL — TERMINAL ===== */
 .hero-visual {
     position: relative;
     flex: 1;
@@ -595,7 +590,6 @@ body {
     50.01%, 100% { opacity: 0; }
 }
 
-/* ===== SCROLL INDICATOR ===== */
 .scroll-indicator {
     position: absolute;
     bottom: 2rem;
@@ -623,7 +617,6 @@ body {
     50% { opacity: 1; transform: scaleY(1); }
 }
 
-/* ===== STATS ===== */
 .stats {
     position: relative;
     z-index: 2;
@@ -667,7 +660,6 @@ body {
     background: var(--border);
 }
 
-/* ===== SECTIONS ===== */
 .section {
     position: relative;
     z-index: 2;
@@ -705,7 +697,6 @@ body {
     margin: 1.5rem auto 0;
 }
 
-/* ===== GLASS CARD ===== */
 .glass {
     background: var(--bg-glass);
     backdrop-filter: blur(20px);
@@ -713,7 +704,6 @@ body {
     border: 1px solid var(--border);
 }
 
-/* ===== ABOUT ===== */
 .about-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -774,7 +764,6 @@ body {
     font-size: 0.98rem;
 }
 
-/* ===== FEATURES ===== */
 .features-list {
     display: flex;
     flex-direction: column;
@@ -839,7 +828,6 @@ body {
     max-width: 600px;
 }
 
-/* ===== VISION ===== */
 .vision {
     text-align: center;
 }
@@ -866,12 +854,10 @@ body {
     margin: 2rem auto 0;
 }
 
-/* ===== CONTACT ===== */
 .contact {
     padding-bottom: 4rem;
 }
 
-/* ===== MONITORING ===== */
 .monitoring {
     padding-top: 4rem;
 }
@@ -1120,7 +1106,6 @@ body {
     position: relative;
 }
 
-/* ===== FOOTER ===== */
 .footer {
     position: relative;
     z-index: 2;
@@ -1176,7 +1161,6 @@ body {
     font-size: 0.85rem;
 }
 
-/* ===== BACK TO TOP ===== */
 .back-to-top {
     position: fixed;
     bottom: 2rem;
@@ -1209,7 +1193,6 @@ body {
     box-shadow: 0 12px 30px rgba(255, 45, 139, 0.6);
 }
 
-/* ===== REVEAL ANIMATIONS ===== */
 .reveal {
     opacity: 0;
     transform: translateY(40px);
@@ -1221,7 +1204,6 @@ body {
     transform: translateY(0);
 }
 
-/* ===== RESPONSIVE ===== */
 @media (max-width: 968px) {
     .hero {
         flex-direction: column;
@@ -1347,9 +1329,6 @@ body {
     }
 }
 
-/* ============================================================
-   AUTH — Navbar account button + dropdown
-   ============================================================ */
 .nav-account {
     position: relative;
 }
@@ -1448,9 +1427,6 @@ body {
     color: #f87171;
 }
 
-/* ============================================================
-   MONITOR LOCKED OVERLAY
-   ============================================================ */
 .monitor-protected.hidden,
 .monitor-locked.hidden {
     display: none !important;
@@ -1496,9 +1472,6 @@ body {
     margin-bottom: 1.75rem;
 }
 
-/* ============================================================
-   MODALS
-   ============================================================ */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -1683,9 +1656,6 @@ body {
     font-size: 0.82rem;
 }
 
-/* ============================================================
-   ADMIN PANEL
-   ============================================================ */
 .admin-panel {
     position: fixed;
     inset: 0;
@@ -1838,7 +1808,6 @@ body {
     flex-wrap: wrap;
 }
 
-/* ===== TABLE ===== */
 .table-wrap {
     overflow-x: auto;
     border-radius: 14px;
@@ -1951,14 +1920,53 @@ body {
     color: var(--pink);
 }
 
-/* ===== SETTINGS FORM ===== */
 .settings-form {
     max-width: 500px;
 }
 
-/* ============================================================
-   MODELS SECTION
-   ============================================================ */
+/* ===== ADMIN CHARTS ===== */
+.charts-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.chart-card {
+    padding: 1.25rem;
+    border-radius: 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.chart-title {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.chart-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--pink);
+}
+
+@media (max-width: 768px) {
+    .charts-section {
+        grid-template-columns: 1fr;
+    }
+}
+
 .models-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -2079,7 +2087,6 @@ body {
     color: var(--text-dim);
 }
 
-/* Skeleton loading for models */
 .model-skeleton {
     pointer-events: none;
 }
@@ -2119,7 +2126,6 @@ body {
     }
 }
 
-/* ===== MODELS ADMIN UI ===== */
 .models-admin-btn {
     margin-top: 1.5rem;
 }
@@ -2146,7 +2152,6 @@ body {
     background: rgba(248, 113, 113, 0.08);
 }
 
-/* ===== MODEL SUGGESTIONS (pull modal) ===== */
 .model-suggestions {
     display: flex;
     flex-wrap: wrap;
@@ -2178,9 +2183,6 @@ body {
     transform: translateY(-1px);
 }
 
-/* ============================================================
-   TOAST CONTAINER (pilha de notificações)
-   ============================================================ */
 .toast-container {
     position: fixed;
     bottom: 2rem;
@@ -2248,9 +2250,6 @@ body {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 20px rgba(74, 222, 128, 0.2);
 }
 
-/* ============================================================
-   RESPONSIVE — Auth/Admin
-   ============================================================ */
 @media (max-width: 768px) {
     .admin-container {
         max-width: 100%;
@@ -2277,9 +2276,6 @@ body {
     }
 }
 
-/* ============================================================
-   PRICING SECTION
-   ============================================================ */
 .pricing-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -2395,9 +2391,6 @@ body {
     background-size: 8px;
 }
 
-/* ============================================================
-   DIFFERENTIALS SECTION
-   ============================================================ */
 .diff-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -2460,9 +2453,6 @@ body {
     line-height: 1.6;
 }
 
-/* ============================================================
-   MODEL TIERS (model-card-size badges)
-   ============================================================ */
 .model-tier {
     display: inline-block;
     padding: 0.25rem 0.65rem;
@@ -2487,9 +2477,6 @@ body {
     color: var(--pink-soft);
 }
 
-/* ============================================================
-   PRICING + DIFF RESPONSIVE
-   ============================================================ */
 @media (max-width: 1024px) {
     .pricing-grid {
         grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
