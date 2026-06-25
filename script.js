@@ -477,7 +477,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('[data-close-admin]').forEach(el => {
-        el.addEventListener('click', () => adminPanel.classList.remove('show'));
+        el.addEventListener('click', () => {
+            adminPanel.classList.remove('show');
+            clearInterval(statusInterval);
+            clearInterval(adminMetricsInterval);
+        });
     });
 
     accountBtn.addEventListener('click', (e) => {
@@ -618,6 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (target === 'metrics') loadAdminMetrics();
             if (target === 'logs') loadLogs();
             if (target === 'settings') loadSettings();
+            if (target === 'status') loadAdminStatus();
         });
     });
 
@@ -886,15 +891,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     /* ============================================================
-       STATUS PÚBLICO — Monitoramento de Serviços
+       STATUS — Monitoramento (dentro do painel Admin)
        ============================================================ */
-    const monitorGrid = document.getElementById('monitorGrid');
-    const metricUptime = document.getElementById('metricUptime');
-    const metricOverall = document.getElementById('metricOverall');
-    const metricOverallSub = document.getElementById('metricOverallSub');
-    const metricLastCheck = document.getElementById('metricLastCheck');
-
-    let lastServicesState = {}; // pra detectar mudanças
+    let statusInterval = null;
 
     const serviceIcons = {
         'ollama': '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V18a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-3.3A6.9 6.9 0 0 0 19 9a7 7 0 0 0-7-7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
@@ -905,88 +904,78 @@ document.addEventListener('DOMContentLoaded', () => {
         'nginx': '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 17l6-6-6-6M12 19h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     };
 
-    const fetchStatus = async () => {
+    const loadAdminStatus = async () => {
+        const grid = document.getElementById('monitorGrid');
+        const uptimeEl = document.getElementById('metricUptime');
+        const overallEl = document.getElementById('metricOverall');
+        const overallSub = document.getElementById('metricOverallSub');
+        const lastCheck = document.getElementById('metricLastCheck');
+
+        if (!grid) return;
+        grid.innerHTML = '<div class="monitor-loading">Carregando...</div>';
+
+        await fetchAdminStatus(grid, uptimeEl, overallEl, overallSub, lastCheck);
+
+        clearInterval(statusInterval);
+        statusInterval = setInterval(() => {
+            fetchAdminStatus(grid, uptimeEl, overallEl, overallSub, lastCheck);
+        }, 30000);
+    };
+
+    const fetchAdminStatus = async (grid, uptimeEl, overallEl, overallSub, lastCheck) => {
         try {
             const res = await fetch('/api/status', { signal: AbortSignal.timeout(5000) });
             const data = await res.json();
             if (!res.ok) throw new Error('Erro ao buscar status');
 
-            renderStatus(data);
-        } catch (err) {
-            if (monitorGrid) {
-                monitorGrid.innerHTML = `
-                    <div class="service-card glass" style="grid-column:1/-1;justify-content:center;padding:2rem;">
-                        <div style="text-align:center;color:var(--text-dim)">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style="margin:0 auto 0.5rem"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                            <p>Servidor de status indisponível</p>
-                            <p style="font-size:0.82rem;margin-top:0.25rem">Tentando novamente em 30s...</p>
+            const services = data.services || [];
+            const allOk = data.status === 'ok';
+
+            // Cards de serviço
+            grid.innerHTML = services.map(svc => `
+                <div class="service-card glass">
+                    <div class="service-icon ${svc.running ? 'running' : 'stopped'}">
+                        ${serviceIcons[svc.slug] || '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/></svg>'}
+                    </div>
+                    <div class="service-info">
+                        <div class="service-name">${svc.name}</div>
+                        <div class="service-status">
+                            <span class="service-status-dot ${svc.running ? 'on' : 'off'}"></span>
+                            ${svc.running ? 'Online' : 'Offline'}
                         </div>
                     </div>
-                `;
-            }
-            if (metricOverall) metricOverall.textContent = '⚠';
-            if (metricOverallSub) metricOverallSub.textContent = 'Sem conexão com o servidor';
-        }
-    };
-
-    const renderStatus = (data) => {
-        if (!monitorGrid) return;
-
-        const services = data.services || [];
-        const allOk = data.status === 'ok';
-
-        // Detectar mudanças e lançar alertas
-        services.forEach(svc => {
-            const prev = lastServicesState[svc.slug];
-            if (prev !== undefined && prev !== svc.running && !svc.running) {
-                showToast(`🔴 ${svc.name} está offline!`, 'error');
-            }
-            lastServicesState[svc.slug] = svc.running;
-        });
-
-        // Renderizar cards de serviço
-        monitorGrid.innerHTML = services.map(svc => `
-            <div class="service-card glass">
-                <div class="service-icon ${svc.running ? 'running' : 'stopped'}">
-                    ${serviceIcons[svc.slug] || '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/></svg>'}
                 </div>
-                <div class="service-info">
-                    <div class="service-name">${svc.name}</div>
-                    <div class="service-status">
-                        <span class="service-status-dot ${svc.running ? 'on' : 'off'}"></span>
-                        ${svc.running ? 'Online' : 'Offline'}
-                    </div>
-                </div>
-            </div>
-        `).join('');
+            `).join('');
 
-        // Métricas
-        if (metricUptime && data.uptime_seconds) {
-            metricUptime.textContent = formatUptime(data.uptime_seconds);
-        }
-        if (metricOverall) {
-            metricOverall.textContent = allOk ? '✓' : '!';
-            metricOverall.style.background = allOk
-                ? 'linear-gradient(135deg, #4ade80, #22c55e)'
-                : 'linear-gradient(135deg, #facc15, #f59e0b)';
-            metricOverall.style.webkitBackgroundClip = 'text';
-            metricOverall.style.webkitTextFillColor = 'transparent';
-        }
-        if (metricOverallSub) {
-            metricOverallSub.textContent = allOk
+            // Métricas
+            if (uptimeEl && data.uptime_seconds) uptimeEl.textContent = formatUptime(data.uptime_seconds);
+            if (overallEl) {
+                overallEl.textContent = allOk ? '✓' : '!';
+                overallEl.style.background = allOk
+                    ? 'linear-gradient(135deg, #4ade80, #22c55e)'
+                    : 'linear-gradient(135deg, #facc15, #f59e0b)';
+                overallEl.style.webkitBackgroundClip = 'text';
+                overallEl.style.webkitTextFillColor = 'transparent';
+            }
+            if (overallSub) overallSub.textContent = allOk
                 ? 'Todos os serviços operacionais'
                 : 'Alguns serviços estão offline';
-        }
-        if (metricLastCheck) {
-            metricLastCheck.textContent = new Date().toLocaleTimeString('pt-BR', { hour12: false });
+            if (lastCheck) lastCheck.textContent = new Date().toLocaleTimeString('pt-BR', { hour12: false });
+
+        } catch (err) {
+            grid.innerHTML = `
+                <div class="service-card glass" style="grid-column:1/-1;justify-content:center;padding:2rem;">
+                    <div style="text-align:center;color:var(--text-dim)">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style="margin:0 auto 0.5rem"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        <p>Servidor de status indisponível</p>
+                        <p style="font-size:0.82rem;margin-top:0.25rem">Tentando novamente em 30s...</p>
+                    </div>
+                </div>
+            `;
+            if (overallEl) overallEl.textContent = '⚠';
+            if (overallSub) overallSub.textContent = 'Sem conexão com o servidor';
         }
     };
-
-    // Monitoramento: iniciar polling
-    if (monitorGrid) {
-        fetchStatus();
-        setInterval(fetchStatus, 30000);
-    }
 
     /* ============================================================
        RESPONSIVIDADE MOBILE — Ajustes finos

@@ -40,7 +40,6 @@
                 <li><a href="#pricing">Planos</a></li>
                 <li><a href="#differentials">Diferenciais</a></li>
                 <li><a href="#models">Modelos</a></li>
-                <li><a href="#status">Status</a></li>
                 <li><a href="#vision">Visão</a></li>
             </ul>
             <div class="nav-actions">
@@ -457,44 +456,6 @@
         </div>
     </section>
 
-    <section class="monitoring section" id="status">
-        <div class="section-header reveal">
-            <span class="section-tag">// STATUS</span>
-            <h2 class="section-title">Status dos <span class="gradient-text">serviços</span></h2>
-            <p class="section-subtitle">Acompanhe em tempo real a disponibilidade dos nossos serviços.</p>
-        </div>
-
-        <div class="monitor-grid reveal" id="monitorGrid">
-            <div class="monitor-loading">Carregando status dos serviços...</div>
-        </div>
-
-        <div class="metrics-grid reveal" id="monitorMetrics">
-            <div class="metric-card glass" id="metricUptimeCard">
-                <div class="metric-header">
-                    <span class="metric-label">Uptime</span>
-                    <span class="metric-value" id="metricUptime">--</span>
-                </div>
-                <div class="metric-sub">Tempo desde o último boot</div>
-            </div>
-            <div class="metric-card glass" id="metricOverallCard">
-                <div class="metric-header">
-                    <span class="metric-label">Status Geral</span>
-                    <span class="metric-value" id="metricOverall">--</span>
-                </div>
-                <div class="metric-sub" id="metricOverallSub">Verificando...</div>
-            </div>
-            <div class="metric-card glass" id="metricUptimeCheck">
-                <div class="metric-header">
-                    <span class="metric-label">Última verificação</span>
-                    <span class="metric-value" id="metricLastCheck" style="font-size:1rem">--</span>
-                </div>
-                <div class="metric-sub">A atualizar a cada 30s</div>
-            </div>
-        </div>
-
-        <div class="monitor-info reveal" id="monitorInfo"></div>
-    </section>
-
     <section class="vision section" id="vision">
         <div class="vision-container reveal">
             <span class="section-tag">// NOSSA VISÃO</span>
@@ -684,6 +645,10 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2"/><path d="M14 2v6h6M8 13h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                         Logs
                     </button>
+                    <button class="admin-tab" data-tab="status">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        Status
+                    </button>
                     <button class="admin-tab" data-tab="settings">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2"/></svg>
                         Configurações
@@ -751,6 +716,38 @@
                             <thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th><th>IP</th></tr></thead>
                             <tbody id="logsTableBody"></tbody>
                         </table>
+                    </div>
+                </div>
+
+                <div class="admin-content" id="tab-status">
+                    <div class="admin-section-header"><h3>Status dos Serviços</h3></div>
+
+                    <div class="monitor-grid" id="monitorGrid" style="margin-bottom:1.5rem">
+                        <div class="monitor-loading">Carregando...</div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem">
+                        <div class="metric-card glass">
+                            <div class="metric-header">
+                                <span class="metric-label">Uptime</span>
+                                <span class="metric-value" id="metricUptime" style="font-size:1.3rem">--</span>
+                            </div>
+                            <div class="metric-sub">Desde o último boot</div>
+                        </div>
+                        <div class="metric-card glass">
+                            <div class="metric-header">
+                                <span class="metric-label">Status Geral</span>
+                                <span class="metric-value" id="metricOverall" style="font-size:1.3rem">--</span>
+                            </div>
+                            <div class="metric-sub" id="metricOverallSub">Verificando...</div>
+                        </div>
+                        <div class="metric-card glass">
+                            <div class="metric-header">
+                                <span class="metric-label">Atualizado</span>
+                                <span class="metric-value" id="metricLastCheck" style="font-size:1rem;background:none;-webkit-text-fill-color:var(--text-muted);color:var(--text-muted)">--</span>
+                            </div>
+                            <div class="metric-sub">A cada 30s</div>
+                        </div>
                     </div>
                 </div>
 
