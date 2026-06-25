@@ -573,6 +573,26 @@ def restart_service(service):
 # ============================================================
 # HEALTHCHECK (público)
 # ============================================================
+@APP.route("/api/status", methods=["GET"])
+def public_status():
+    """Endpoint público — retorna apenas status dos serviços, sem métricas sensíveis."""
+    hermes = _proc_info("hermes")
+    services = [
+        {"name": "Ollama", "slug": "ollama", "running": _port_open("127.0.0.1", 11434)},
+        {"name": "OpenWebUI", "slug": "openwebui", "running": _port_open("127.0.0.1", 3000)},
+        {"name": "Hermes", "slug": "hermes", "running": len(hermes) > 0},
+        {"name": "Auth Server", "slug": "auth", "running": True},  # este server está rodando
+        {"name": "LiteLLM", "slug": "litellm", "running": _port_open("127.0.0.1", 4000)},
+        {"name": "Nginx", "slug": "nginx", "running": True},  # proxy está ativo
+    ]
+    all_ok = all(s["running"] for s in services)
+    return jsonify({
+        "status": "ok" if all_ok else "degraded",
+        "timestamp": int(time.time()),
+        "uptime_seconds": int(time.time() - psutil.boot_time()),
+        "services": services
+    })
+
 @APP.route("/api/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok", "timestamp": int(time.time())})

@@ -885,6 +885,122 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    /* ============================================================
+       STATUS PÚBLICO — Monitoramento de Serviços
+       ============================================================ */
+    const monitorGrid = document.getElementById('monitorGrid');
+    const metricUptime = document.getElementById('metricUptime');
+    const metricOverall = document.getElementById('metricOverall');
+    const metricOverallSub = document.getElementById('metricOverallSub');
+    const metricLastCheck = document.getElementById('metricLastCheck');
+
+    let lastServicesState = {}; // pra detectar mudanças
+
+    const serviceIcons = {
+        'ollama': '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V18a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-3.3A6.9 6.9 0 0 0 19 9a7 7 0 0 0-7-7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+        'openwebui': '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'hermes': '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+        'auth': '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="1.8"/></svg>',
+        'litellm': '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" stroke="currentColor" stroke-width="1.8"/></svg>',
+        'nginx': '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 17l6-6-6-6M12 19h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    };
+
+    const fetchStatus = async () => {
+        try {
+            const res = await fetch('/api/status', { signal: AbortSignal.timeout(5000) });
+            const data = await res.json();
+            if (!res.ok) throw new Error('Erro ao buscar status');
+
+            renderStatus(data);
+        } catch (err) {
+            if (monitorGrid) {
+                monitorGrid.innerHTML = `
+                    <div class="service-card glass" style="grid-column:1/-1;justify-content:center;padding:2rem;">
+                        <div style="text-align:center;color:var(--text-dim)">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style="margin:0 auto 0.5rem"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                            <p>Servidor de status indisponível</p>
+                            <p style="font-size:0.82rem;margin-top:0.25rem">Tentando novamente em 30s...</p>
+                        </div>
+                    </div>
+                `;
+            }
+            if (metricOverall) metricOverall.textContent = '⚠';
+            if (metricOverallSub) metricOverallSub.textContent = 'Sem conexão com o servidor';
+        }
+    };
+
+    const renderStatus = (data) => {
+        if (!monitorGrid) return;
+
+        const services = data.services || [];
+        const allOk = data.status === 'ok';
+
+        // Detectar mudanças e lançar alertas
+        services.forEach(svc => {
+            const prev = lastServicesState[svc.slug];
+            if (prev !== undefined && prev !== svc.running && !svc.running) {
+                showToast(`🔴 ${svc.name} está offline!`, 'error');
+            }
+            lastServicesState[svc.slug] = svc.running;
+        });
+
+        // Renderizar cards de serviço
+        monitorGrid.innerHTML = services.map(svc => `
+            <div class="service-card glass">
+                <div class="service-icon ${svc.running ? 'running' : 'stopped'}">
+                    ${serviceIcons[svc.slug] || '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/></svg>'}
+                </div>
+                <div class="service-info">
+                    <div class="service-name">${svc.name}</div>
+                    <div class="service-status">
+                        <span class="service-status-dot ${svc.running ? 'on' : 'off'}"></span>
+                        ${svc.running ? 'Online' : 'Offline'}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        // Métricas
+        if (metricUptime && data.uptime_seconds) {
+            metricUptime.textContent = formatUptime(data.uptime_seconds);
+        }
+        if (metricOverall) {
+            metricOverall.textContent = allOk ? '✓' : '!';
+            metricOverall.style.background = allOk
+                ? 'linear-gradient(135deg, #4ade80, #22c55e)'
+                : 'linear-gradient(135deg, #facc15, #f59e0b)';
+            metricOverall.style.webkitBackgroundClip = 'text';
+            metricOverall.style.webkitTextFillColor = 'transparent';
+        }
+        if (metricOverallSub) {
+            metricOverallSub.textContent = allOk
+                ? 'Todos os serviços operacionais'
+                : 'Alguns serviços estão offline';
+        }
+        if (metricLastCheck) {
+            metricLastCheck.textContent = new Date().toLocaleTimeString('pt-BR', { hour12: false });
+        }
+    };
+
+    // Monitoramento: iniciar polling
+    if (monitorGrid) {
+        fetchStatus();
+        setInterval(fetchStatus, 30000);
+    }
+
+    /* ============================================================
+       RESPONSIVIDADE MOBILE — Ajustes finos
+       ============================================================ */
+    // Fechar menu mobile ao clicar fora
+    document.addEventListener('click', (e) => {
+        if (navLinks.classList.contains('active') &&
+            !navLinks.contains(e.target) &&
+            !menuToggle.contains(e.target)) {
+            menuToggle.classList.remove('active');
+            navLinks.classList.remove('active');
+        }
+    });
+
     checkSession();
 
 });

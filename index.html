@@ -40,6 +40,7 @@
                 <li><a href="#pricing">Planos</a></li>
                 <li><a href="#differentials">Diferenciais</a></li>
                 <li><a href="#models">Modelos</a></li>
+                <li><a href="#status">Status</a></li>
                 <li><a href="#vision">Visão</a></li>
             </ul>
             <div class="nav-actions">
@@ -454,6 +455,44 @@
                 </div>
             </div>
         </div>
+    </section>
+
+    <section class="monitoring section" id="status">
+        <div class="section-header reveal">
+            <span class="section-tag">// STATUS</span>
+            <h2 class="section-title">Status dos <span class="gradient-text">serviços</span></h2>
+            <p class="section-subtitle">Acompanhe em tempo real a disponibilidade dos nossos serviços.</p>
+        </div>
+
+        <div class="monitor-grid reveal" id="monitorGrid">
+            <div class="monitor-loading">Carregando status dos serviços...</div>
+        </div>
+
+        <div class="metrics-grid reveal" id="monitorMetrics">
+            <div class="metric-card glass" id="metricUptimeCard">
+                <div class="metric-header">
+                    <span class="metric-label">Uptime</span>
+                    <span class="metric-value" id="metricUptime">--</span>
+                </div>
+                <div class="metric-sub">Tempo desde o último boot</div>
+            </div>
+            <div class="metric-card glass" id="metricOverallCard">
+                <div class="metric-header">
+                    <span class="metric-label">Status Geral</span>
+                    <span class="metric-value" id="metricOverall">--</span>
+                </div>
+                <div class="metric-sub" id="metricOverallSub">Verificando...</div>
+            </div>
+            <div class="metric-card glass" id="metricUptimeCheck">
+                <div class="metric-header">
+                    <span class="metric-label">Última verificação</span>
+                    <span class="metric-value" id="metricLastCheck" style="font-size:1rem">--</span>
+                </div>
+                <div class="metric-sub">A atualizar a cada 30s</div>
+            </div>
+        </div>
+
+        <div class="monitor-info reveal" id="monitorInfo"></div>
     </section>
 
     <section class="vision section" id="vision">
