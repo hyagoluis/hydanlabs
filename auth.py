@@ -94,7 +94,7 @@ ABACATE_API = "https://api.abacatepay.com/v2"
 
 # Mapeamento plano → produto AbacatePay
 PLAN_PRODUCTS = {
-    "trainee": "prod_YxXkX1KguuUFNfcH2XwDhdAw",
+    "trainee": "prod_WZALu4aJEew0SBCbaw3ntPdn",
     "junior": "prod_fuP1utkezHygFxxKry2UuNGg",
     "pleno": "prod_rtLFcHkSaNG03mG0dU0WGwx3",
     "senior": "prod_ZFGMA5dDF6LLrNkRyGhHwHPL",
