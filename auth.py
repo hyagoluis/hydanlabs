@@ -694,7 +694,7 @@ def create_checkout():
     # Criar checkout na AbacatePay
     payload = json.dumps({
         "items": [{"id": product_id, "quantity": 1}],
-        "methods": ["PIX", "CARD"],
+        "methods": ["CARD"],
         "externalId": f"{user_id}_{plan}_{int(time.time())}",
         "completionUrl": "https://hyagox.space?checkout=success",
         "returnUrl": "https://hyagox.space",
@@ -702,11 +702,12 @@ def create_checkout():
     }).encode()
 
     req = Request(
-        f"{ABACATE_API}/checkouts/create",
+        f"{ABACATE_API}/subscriptions/create",
         data=payload,
         headers={
             "Authorization": f"Bearer {ABACATE_API_KEY}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": "curl/8.0"
         },
         method="POST"
     )
