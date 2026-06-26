@@ -41,6 +41,7 @@ import hashlib
 import sqlite3
 import subprocess
 from datetime import datetime, timezone
+import base64
 from functools import wraps
 from http.server import BaseHTTPRequestHandler
 from urllib.request import urlopen, Request
@@ -84,6 +85,24 @@ REPO_DIR = os.environ.get("HYDAN_REPO_DIR", os.path.expanduser("~/hydanlabs"))
 SITE_DIR = "/var/www/hydan-labs"
 OLLAMA_URL = "http://127.0.0.1:11434"
 
+# ============================================================
+# ABACATEPAY
+# ============================================================
+ABACATE_API_KEY = os.environ.get("ABACATE_API_KEY", "")
+ABACATE_WEBHOOK_SECRET = os.environ.get("ABACATE_WEBHOOK_SECRET", "change-me")
+ABACATE_API = "https://api.abacatepay.com/v2"
+
+# Mapeamento plano → produto AbacatePay
+PLAN_PRODUCTS = {
+    "trainee": "prod_YxXkX1KguuUFNfcH2XwDhdAw",
+    "junior": "prod_fuP1utkezHygFxxKry2UuNGg",
+    "pleno": "prod_rtLFcHkSaNG03mG0dU0WGwx3",
+    "senior": "prod_ZFGMA5dDF6LLrNkRyGhHwHPL",
+    "lead": "prod_GxQRsZkNF0qbXMZGQX1m1kQ2",
+}
+
+VALID_PLANS = ("free", "trainee", "junior", "pleno", "senior", "lead")
+
 # Rate limiting simples
 _login_attempts = {}
 
@@ -114,8 +133,29 @@ def init_db():
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL DEFAULT 'user',
+            plan TEXT NOT NULL DEFAULT 'free',
             created_at TEXT NOT NULL,
             active INTEGER NOT NULL DEFAULT 1
+        )
+    """)
+    # Migração: adicionar coluna plan se não existir
+    try:
+        conn.execute("ALTER TABLE users ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'")
+    except sqlite3.OperationalError:
+        pass  # já existe
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS subscriptions (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            plan TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'active',
+            abacate_checkout_id TEXT,
+            abacate_bill_id TEXT,
+            amount_cents INTEGER,
+            created_at TEXT NOT NULL,
+            expires_at TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
     conn.execute("""
@@ -270,6 +310,46 @@ def record_failed_attempt(ip):
 # ============================================================
 # AUTH ROUTES
 # ============================================================
+@APP.route("/auth/register", methods=["POST"])
+def register():
+    """Autocadastro público — cria usuário com plano free."""
+    data = request.get_json(silent=True) or {}
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+
+    if not username or not password:
+        return jsonify({"error": "Username e senha obrigatórios"}), 400
+    if not username.isalnum():
+        return jsonify({"error": "Username deve conter apenas letras e números"}), 400
+    if len(password) < 8:
+        return jsonify({"error": "Senha deve ter no mínimo 8 caracteres"}), 400
+
+    db = get_db()
+    existing = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+    if existing:
+        return jsonify({"error": "Username já existe"}), 409
+
+    pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    user_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    db.execute(
+        "INSERT INTO users (id, username, password_hash, role, plan, created_at) VALUES (?, ?, ?, ?, 'free', ?)",
+        (user_id, username, pw_hash, "user", now)
+    )
+    db.commit()
+
+    token = create_token(user_id, username, "user")
+    log_action(user_id, username, "registered")
+
+    resp = jsonify({
+        "token": token,
+        "user": {"id": user_id, "username": username, "role": "user", "plan": "free"}
+    })
+    resp.set_cookie("hydan_token", token, httponly=True, secure=True,
+                     samesite="Strict", max_age=JWT_EXPIRY, path="/")
+    return resp, 201
+
+
 @APP.route("/auth/login", methods=["POST"])
 def login():
     data = request.get_json(silent=True) or {}
@@ -300,7 +380,7 @@ def login():
 
     resp = jsonify({
         "token": token,
-        "user": {"id": user["id"], "username": user["username"], "role": user["role"]}
+        "user": {"id": user["id"], "username": user["username"], "role": user["role"], "plan": user["plan"]}
     })
     resp.set_cookie("hydan_token", token, httponly=True, secure=True,
                      samesite="Strict", max_age=JWT_EXPIRY, path="/")
@@ -318,10 +398,10 @@ def logout():
 @token_required
 def me():
     db = get_db()
-    user = db.execute("SELECT id, username, role, created_at FROM users WHERE id = ?", (g.current_user["user_id"],)).fetchone()
+    user = db.execute("SELECT id, username, role, plan, created_at FROM users WHERE id = ?", (g.current_user["user_id"],)).fetchone()
     if not user:
         return jsonify({"error": "Usuário não encontrado"}), 404
-    return jsonify({"id": user["id"], "username": user["username"], "role": user["role"], "created_at": user["created_at"]})
+    return jsonify({"id": user["id"], "username": user["username"], "role": user["role"], "plan": user["plan"], "created_at": user["created_at"]})
 
 # ============================================================
 # USER MANAGEMENT (Admin)
@@ -330,7 +410,7 @@ def me():
 @admin_required
 def list_users():
     db = get_db()
-    users = db.execute("SELECT id, username, role, created_at, active FROM users ORDER BY created_at").fetchall()
+    users = db.execute("SELECT id, username, role, plan, created_at, active FROM users ORDER BY created_at").fetchall()
     return jsonify([dict(u) for u in users])
 
 @APP.route("/auth/users", methods=["POST"])
@@ -592,6 +672,135 @@ def public_status():
         "uptime_seconds": int(time.time() - psutil.boot_time()),
         "services": services
     })
+
+# ============================================================
+# CHECKOUT — Criar sessão de pagamento no AbacatePay
+# ============================================================
+@APP.route("/api/checkout", methods=["POST"])
+@token_required
+def create_checkout():
+    if not ABACATE_API_KEY:
+        return jsonify({"error": "AbacatePay não configurado (ABACATE_API_KEY ausente)"}), 503
+
+    data = request.get_json(silent=True) or {}
+    plan = data.get("plan", "").strip().lower()
+
+    if plan not in PLAN_PRODUCTS:
+        return jsonify({"error": f"Plano inválido. Válidos: {', '.join(PLAN_PRODUCTS.keys())}"}), 400
+
+    product_id = PLAN_PRODUCTS[plan]
+    user_id = g.current_user["user_id"]
+
+    # Criar checkout na AbacatePay
+    payload = json.dumps({
+        "items": [{"id": product_id, "quantity": 1}],
+        "methods": ["PIX", "CARD"],
+        "externalId": f"{user_id}_{plan}_{int(time.time())}",
+        "completionUrl": "https://hyagox.space?checkout=success",
+        "returnUrl": "https://hyagox.space",
+        "metadata": {"user_id": user_id, "plan": plan}
+    }).encode()
+
+    req = Request(
+        f"{ABACATE_API}/checkouts/create",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {ABACATE_API_KEY}",
+            "Content-Type": "application/json"
+        },
+        method="POST"
+    )
+
+    try:
+        with urlopen(req, timeout=15) as resp:
+            result = json.loads(resp.read().decode())
+    except HTTPError as e:
+        err_body = e.read().decode(errors="replace")
+        return jsonify({"error": "Erro ao criar checkout", "details": err_body}), 502
+    except Exception as e:
+        return jsonify({"error": f"Falha ao conectar no AbacatePay: {str(e)}"}), 502
+
+    checkout_data = result.get("data", {})
+    checkout_url = checkout_data.get("url", "")
+    checkout_id = checkout_data.get("id", "")
+
+    if not checkout_url:
+        return jsonify({"error": "Resposta inválida do AbacatePay", "data": result}), 502
+
+    # Registrar subscription pendente
+    db = get_db()
+    sub_id = str(uuid.uuid4())
+    db.execute(
+        "INSERT INTO subscriptions (id, user_id, plan, status, abacate_checkout_id, amount_cents, created_at) VALUES (?, ?, ?, 'pending', ?, ?, ?)",
+        (sub_id, user_id, plan, checkout_id, checkout_data.get("amount"), datetime.now(timezone.utc).isoformat())
+    )
+    db.commit()
+
+    log_action(user_id, g.current_user["username"], f"checkout_created:{plan}")
+    return jsonify({"url": checkout_url, "checkout_id": checkout_id, "subscription_id": sub_id})
+
+
+# ============================================================
+# WEBHOOK — Receber confirmação de pagamento do AbacatePay
+# ============================================================
+@APP.route("/api/webhook/abacatepay", methods=["POST"])
+def webhook_abacatepay():
+    """Recebe eventos de pagamento do AbacatePay e atualiza o plano do usuário."""
+    # Verificar secret na query string
+    webhook_secret = request.args.get("webhookSecret", "")
+    if not webhook_secret or webhook_secret != ABACATE_WEBHOOK_SECRET:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    # Verificar assinatura HMAC
+    sig_header = request.headers.get("X-Webhook-Signature", "")
+    if sig_header:
+        raw = request.get_data(as_text=True)
+        expected = hmac.new(ABACATE_WEBHOOK_SECRET.encode(), raw.encode(), hashlib.sha256).digest()
+        expected_b64 = base64.b64encode(expected).decode()
+        if not hmac.compare_digest(expected_b64, sig_header):
+            return jsonify({"error": "Invalid signature"}), 401
+
+    event = request.get_json(silent=True) or {}
+    event_type = event.get("event", "")
+    event_data = event.get("data", {})
+
+    log_action("system", "abacatepay", f"webhook_received:{event_type}")
+
+    if event_type in ("checkout.completed", "subscription.completed"):
+        checkout_id = event_data.get("id", "")
+        metadata = event_data.get("metadata", {}) or {}
+        user_id = metadata.get("user_id", "")
+        plan = metadata.get("plan", "")
+        external_id = event_data.get("externalId", "")
+
+        # Fallback: extrair do externalId se metadata vazio
+        if not user_id or not plan:
+            if external_id and "_" in external_id:
+                parts = external_id.split("_")
+                if len(parts) >= 2:
+                    user_id = parts[0]
+                    plan = parts[1]
+
+        if not user_id or plan not in PLAN_PRODUCTS:
+            return jsonify({"error": "Dados insuficientes"}), 400
+
+        db = get_db()
+        # Atualizar plano do usuário
+        db.execute("UPDATE users SET plan = ? WHERE id = ?", (plan, user_id))
+        # Atualizar subscription
+        db.execute(
+            "UPDATE subscriptions SET status = 'active', abacate_bill_id = ? WHERE abacate_checkout_id = ?",
+            (event_data.get("billId", ""), checkout_id)
+        )
+        db.commit()
+
+        # Buscar username para o log
+        user = db.execute("SELECT username FROM users WHERE id = ?", (user_id,)).fetchone()
+        uname = user["username"] if user else "unknown"
+        log_action(user_id, uname, f"plan_upgraded:{plan}")
+
+    return jsonify({"received": True}), 200
+
 
 @APP.route("/api/health", methods=["GET"])
 def health():

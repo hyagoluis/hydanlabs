@@ -513,38 +513,103 @@ document.addEventListener('DOMContentLoaded', () => {
     ddLogoutBtn.addEventListener('click', () => doLogout());
 
 
+    /* ============================================================
+       SUBSCRIBE — Fluxo de assinatura
+       ============================================================ */
+    window.subscribe = async (planName) => {
+        if (!getToken()) {
+            showToast('Faça login primeiro para assinar um plano.', 'error');
+            openModal(loginModal);
+            return;
+        }
+
+        try {
+            const res = await apiFetch('/api/checkout', {
+                method: 'POST',
+                body: JSON.stringify({ plan: planName })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Erro ao criar checkout');
+
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                throw new Error('URL de pagamento não recebida');
+            }
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    };
+
+    /* ============================================================
+       REGISTRO — Autocadastro dentro do modal de login
+       ============================================================ */
+    let isRegisterMode = false;
+
     const loginForm = document.getElementById('loginForm');
     const loginError = document.getElementById('loginError');
     const loginSubmit = document.getElementById('loginSubmit');
+
+    // Adicionar toggle registro/login no modal
+    const modalForm = loginForm;
+    const toggleHtml = document.createElement('p');
+    toggleHtml.className = 'modal-hint';
+    toggleHtml.id = 'authToggle';
+    toggleHtml.innerHTML = 'Não tem conta? <a href="#" id="toggleAuthMode" style="color:var(--pink);text-decoration:none;font-weight:600">Criar conta</a>';
+    loginForm.parentNode.insertBefore(toggleHtml, loginForm.nextSibling);
+
+    const toggleAuthMode = (e) => {
+        e.preventDefault();
+        isRegisterMode = !isRegisterMode;
+        const title = document.querySelector('.modal-title');
+        const subtitle = document.querySelector('.modal-subtitle');
+        if (isRegisterMode) {
+            title.textContent = 'Criar Conta';
+            subtitle.textContent = 'Registre-se para assinar um plano';
+            toggleHtml.innerHTML = 'Já tem conta? <a href="#" id="toggleAuthMode" style="color:var(--pink);text-decoration:none;font-weight:600">Fazer login</a>';
+            loginSubmit.querySelector('span').textContent = 'Criar Conta';
+        } else {
+            title.textContent = 'Acessar Hydan';
+            subtitle.textContent = 'Entre com suas credenciais';
+            toggleHtml.innerHTML = 'Não tem conta? <a href="#" id="toggleAuthMode" style="color:var(--pink);text-decoration:none;font-weight:600">Criar conta</a>';
+            loginSubmit.querySelector('span').textContent = 'Entrar';
+        }
+        // Re-add event listener (since innerHTML replaces the element)
+        document.getElementById('toggleAuthMode').addEventListener('click', toggleAuthMode);
+    };
+    document.getElementById('toggleAuthMode').addEventListener('click', toggleAuthMode);
 
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         loginError.textContent = '';
         loginSubmit.disabled = true;
-        loginSubmit.innerHTML = '<span>Entrando...</span>';
+        const loadingText = isRegisterMode ? 'Criando...' : 'Entrando...';
+        loginSubmit.innerHTML = `<span>${loadingText}</span>`;
 
         const username = document.getElementById('loginUser').value.trim();
         const password = document.getElementById('loginPass').value;
+        const endpoint = isRegisterMode ? '/auth/register' : '/auth/login';
 
         try {
-            const res = await apiFetch('/auth/login', {
+            const res = await apiFetch(endpoint, {
                 method: 'POST',
                 body: JSON.stringify({ username, password })
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Erro ao entrar');
+            if (!res.ok) throw new Error(data.error || 'Erro ao processar');
 
             setToken(data.token);
             currentUser = data.user;
             applyAuthState();
             closeModal(loginModal);
-            showToast('Bem-vindo, ' + data.user.username + '!', 'success');
+            showToast(isRegisterMode ? 'Conta criada com sucesso!' : 'Bem-vindo, ' + data.user.username + '!', 'success');
             loginForm.reset();
+            if (isRegisterMode) isRegisterMode = false;
         } catch (err) {
             loginError.textContent = err.message;
         } finally {
             loginSubmit.disabled = false;
-            loginSubmit.innerHTML = '<span>Entrar</span>';
+            loginSubmit.innerHTML = `<span>${isRegisterMode ? 'Criar Conta' : 'Entrar'}</span>`;
         }
     });
 
@@ -567,11 +632,20 @@ document.addEventListener('DOMContentLoaded', () => {
         applyAuthState();
     };
 
+    const planLabels = {
+        'free': 'Grátis', 'trainee': 'Trainee', 'junior': 'Junior',
+        'pleno': 'Pleno', 'senior': 'Senior', 'lead': 'Lead'
+    };
+
     const applyAuthState = () => {
         if (currentUser) {
             accountLabel.textContent = currentUser.username;
             ddUserName.textContent = currentUser.username;
-            ddUserRole.textContent = currentUser.role === 'admin' ? 'Administrador' : 'Usuário';
+            const plan = currentUser.plan || 'free';
+            const planText = planLabels[plan] || plan;
+            ddUserRole.textContent = plan === 'free'
+                ? (currentUser.role === 'admin' ? 'Admin' : 'Usuário')
+                : `${planText} • ${currentUser.role === 'admin' ? 'Admin' : 'Usuário'}`;
             ddAdminBtn.style.display = currentUser.role === 'admin' ? 'flex' : 'none';
         } else {
             accountLabel.textContent = 'Acessar';
