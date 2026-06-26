@@ -42,6 +42,7 @@ import sqlite3
 import subprocess
 from datetime import datetime, timezone
 import base64
+import re
 from functools import wraps
 from http.server import BaseHTTPRequestHandler
 from urllib.request import urlopen, Request
@@ -103,6 +104,9 @@ PLAN_PRODUCTS = {
 
 VALID_PLANS = ("free", "trainee", "junior", "pleno", "senior", "lead")
 
+# ZeroBounce (verificação opcional de e-mail)
+ZEROBOUNCE_API_KEY = os.environ.get("ZEROBOUNCE_API_KEY", "")
+
 # Rate limiting simples
 _login_attempts = {}
 
@@ -134,6 +138,8 @@ def init_db():
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL DEFAULT 'user',
             plan TEXT NOT NULL DEFAULT 'free',
+            email TEXT NOT NULL DEFAULT '',
+            full_name TEXT NOT NULL DEFAULT '',
             created_at TEXT NOT NULL,
             active INTEGER NOT NULL DEFAULT 1
         )
@@ -143,6 +149,12 @@ def init_db():
         conn.execute("ALTER TABLE users ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'")
     except sqlite3.OperationalError:
         pass  # já existe
+    # Migração: adicionar colunas email e full_name
+    for col in ["email TEXT NOT NULL DEFAULT ''", "full_name TEXT NOT NULL DEFAULT ''"]:
+        try:
+            conn.execute(f"ALTER TABLE users ADD COLUMN {col}")
+        except sqlite3.OperationalError:
+            pass
 
     conn.execute("""
         CREATE TABLE IF NOT EXISTS subscriptions (
@@ -308,6 +320,66 @@ def record_failed_attempt(ip):
     _login_attempts[ip].append(now)
 
 # ============================================================
+# VALIDAÇÃO DE E-MAIL
+# ============================================================
+_EMAIL_RE = re.compile(r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$")
+
+def validate_email(email):
+    """
+    Valida formato do e-mail e, se possível, verifica se o domínio tem registro MX.
+    Se ZEROBOUNCE_API_KEY estiver configurada, também verifica se o e-mail existe.
+    Retorna (True/False, mensagem).
+    """
+    email = email.strip().lower()
+
+    # 1. Formato
+    if not _EMAIL_RE.match(email):
+        return False, "Formato de e-mail inválido"
+    if len(email) > 254:
+        return False, "E-mail muito longo (máx. 254 caracteres)"
+
+    # 2. Verificar MX record do domínio (gratuito, sem API externa)
+    domain = email.split("@")[1]
+    try:
+        import dns.resolver
+        try:
+            dns.resolver.resolve(domain, "MX", lifetime=3)
+        except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, dns.exception.Timeout):
+            # Tenta resolver registro A também
+            try:
+                dns.resolver.resolve(domain, "A", lifetime=3)
+            except Exception:
+                return False, f"Domínio '{domain}' não encontrado ou não aceita e-mails"
+    except ImportError:
+        # dnspython não instalado — tentamos com socket
+        try:
+            socket.gethostbyname(domain)
+        except socket.gaierror:
+            return False, f"Domínio '{domain}' não encontrado"
+    except Exception:
+        pass  # Se falhar, aceita — pode ser bloqueio de DNS
+
+    # 3. Verificação via ZeroBounce (se configurado)
+    if ZEROBOUNCE_API_KEY:
+        try:
+            zb_url = f"https://api.zerobounce.net/v2/validate?api_key={ZEROBOUNCE_API_KEY}&email={email}"
+            with urlopen(zb_url, timeout=10) as zb_resp:
+                zb_data = json.loads(zb_resp.read().decode())
+            zb_status = zb_data.get("status", "")
+            if zb_status == "invalid":
+                return False, "E-mail inválido ou não existe"
+            elif zb_status == "catch-all":
+                # Domínio catch-all — aceita mas avisa
+                pass
+            elif zb_status == "unknown":
+                # Não foi possível verificar — aceita
+                pass
+        except Exception:
+            pass  # Se falhar, só aceita
+
+    return True, ""
+
+# ============================================================
 # AUTH ROUTES
 # ============================================================
 @APP.route("/auth/register", methods=["POST"])
@@ -316,6 +388,8 @@ def register():
     data = request.get_json(silent=True) or {}
     username = data.get("username", "").strip()
     password = data.get("password", "")
+    email = data.get("email", "").strip().lower()
+    full_name = data.get("full_name", "").strip()
 
     if not username or not password:
         return jsonify({"error": "Username e senha obrigatórios"}), 400
@@ -324,17 +398,29 @@ def register():
     if len(password) < 8:
         return jsonify({"error": "Senha deve ter no mínimo 8 caracteres"}), 400
 
+    # Validar email
+    if not email:
+        return jsonify({"error": "E-mail é obrigatório"}), 400
+    email_valid, email_msg = validate_email(email)
+    if not email_valid:
+        return jsonify({"error": email_msg}), 400
+
     db = get_db()
     existing = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
     if existing:
         return jsonify({"error": "Username já existe"}), 409
 
+    # Verificar email duplicado
+    existing_email = db.execute("SELECT id FROM users WHERE email = ? AND email != ''", (email,)).fetchone()
+    if existing_email:
+        return jsonify({"error": "E-mail já cadastrado"}), 409
+
     pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     user_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     db.execute(
-        "INSERT INTO users (id, username, password_hash, role, plan, created_at) VALUES (?, ?, ?, ?, 'free', ?)",
-        (user_id, username, pw_hash, "user", now)
+        "INSERT INTO users (id, username, password_hash, role, plan, email, full_name, created_at) VALUES (?, ?, ?, ?, 'free', ?, ?, ?)",
+        (user_id, username, pw_hash, "user", email, full_name, now)
     )
     db.commit()
 
@@ -343,7 +429,7 @@ def register():
 
     resp = jsonify({
         "token": token,
-        "user": {"id": user_id, "username": username, "role": "user", "plan": "free"}
+        "user": {"id": user_id, "username": username, "role": "user", "plan": "free", "email": email, "full_name": full_name}
     })
     resp.set_cookie("hydan_token", token, httponly=True, secure=True,
                      samesite="Strict", max_age=JWT_EXPIRY, path="/")
@@ -380,7 +466,7 @@ def login():
 
     resp = jsonify({
         "token": token,
-        "user": {"id": user["id"], "username": user["username"], "role": user["role"], "plan": user["plan"]}
+        "user": {"id": user["id"], "username": user["username"], "role": user["role"], "plan": user["plan"], "email": user["email"], "full_name": user["full_name"]}
     })
     resp.set_cookie("hydan_token", token, httponly=True, secure=True,
                      samesite="Strict", max_age=JWT_EXPIRY, path="/")
@@ -398,10 +484,10 @@ def logout():
 @token_required
 def me():
     db = get_db()
-    user = db.execute("SELECT id, username, role, plan, created_at FROM users WHERE id = ?", (g.current_user["user_id"],)).fetchone()
+    user = db.execute("SELECT id, username, role, plan, email, full_name, created_at FROM users WHERE id = ?", (g.current_user["user_id"],)).fetchone()
     if not user:
         return jsonify({"error": "Usuário não encontrado"}), 404
-    return jsonify({"id": user["id"], "username": user["username"], "role": user["role"], "plan": user["plan"], "created_at": user["created_at"]})
+    return jsonify({"id": user["id"], "username": user["username"], "role": user["role"], "plan": user["plan"], "email": user["email"], "full_name": user["full_name"], "created_at": user["created_at"]})
 
 # ============================================================
 # USER MANAGEMENT (Admin)
@@ -410,7 +496,7 @@ def me():
 @admin_required
 def list_users():
     db = get_db()
-    users = db.execute("SELECT id, username, role, plan, created_at, active FROM users ORDER BY created_at").fetchall()
+    users = db.execute("SELECT id, username, role, plan, email, full_name, created_at, active FROM users ORDER BY created_at").fetchall()
     return jsonify([dict(u) for u in users])
 
 @APP.route("/auth/users", methods=["POST"])
@@ -420,6 +506,8 @@ def create_user():
     username = data.get("username", "").strip()
     password = data.get("password", "")
     role = data.get("role", "user")
+    email = data.get("email", "").strip().lower()
+    full_name = data.get("full_name", "").strip()
 
     if not username or not password:
         return jsonify({"error": "Username e senha obrigatórios"}), 400
@@ -430,20 +518,30 @@ def create_user():
     if role not in ("admin", "user"):
         role = "user"
 
+    if email:
+        email_valid, email_msg = validate_email(email)
+        if not email_valid:
+            return jsonify({"error": email_msg}), 400
+
     db = get_db()
     existing = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
     if existing:
         return jsonify({"error": "Username já existe"}), 409
 
+    if email:
+        existing_email = db.execute("SELECT id FROM users WHERE email = ? AND email != ''", (email,)).fetchone()
+        if existing_email:
+            return jsonify({"error": "E-mail já cadastrado"}), 409
+
     pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     user_id = str(uuid.uuid4())
     db.execute(
-        "INSERT INTO users (id, username, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)",
-        (user_id, username, pw_hash, role, datetime.now(timezone.utc).isoformat())
+        "INSERT INTO users (id, username, password_hash, role, email, full_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (user_id, username, pw_hash, role, email, full_name, datetime.now(timezone.utc).isoformat())
     )
     db.commit()
     log_action(g.current_user["user_id"], g.current_user["username"], f"created_user:{username}")
-    return jsonify({"id": user_id, "username": username, "role": role}), 201
+    return jsonify({"id": user_id, "username": username, "role": role, "email": email, "full_name": full_name}), 201
 
 @APP.route("/auth/users/<user_id>", methods=["PATCH"])
 @admin_required

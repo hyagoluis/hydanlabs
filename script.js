@@ -563,16 +563,19 @@ document.addEventListener('DOMContentLoaded', () => {
         isRegisterMode = !isRegisterMode;
         const title = document.querySelector('.modal-title');
         const subtitle = document.querySelector('.modal-subtitle');
+        const registerFields = document.querySelectorAll('.register-field');
         if (isRegisterMode) {
             title.textContent = 'Criar Conta';
             subtitle.textContent = 'Registre-se para assinar um plano';
             toggleHtml.innerHTML = 'Já tem conta? <a href="#" id="toggleAuthMode" style="color:var(--pink);text-decoration:none;font-weight:600">Fazer login</a>';
             loginSubmit.querySelector('span').textContent = 'Criar Conta';
+            registerFields.forEach(f => f.style.display = '');
         } else {
             title.textContent = 'Acessar Hydan';
             subtitle.textContent = 'Entre com suas credenciais';
             toggleHtml.innerHTML = 'Não tem conta? <a href="#" id="toggleAuthMode" style="color:var(--pink);text-decoration:none;font-weight:600">Criar conta</a>';
             loginSubmit.querySelector('span').textContent = 'Entrar';
+            registerFields.forEach(f => f.style.display = 'none');
         }
         // Re-add event listener (since innerHTML replaces the element)
         document.getElementById('toggleAuthMode').addEventListener('click', toggleAuthMode);
@@ -588,12 +591,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const username = document.getElementById('loginUser').value.trim();
         const password = document.getElementById('loginPass').value;
+        const full_name = document.getElementById('regName').value.trim();
+        const email = document.getElementById('regEmail').value.trim();
         const endpoint = isRegisterMode ? '/auth/register' : '/auth/login';
+
+        const body = { username, password };
+        if (isRegisterMode) {
+            body.email = email;
+            body.full_name = full_name;
+        }
 
         try {
             const res = await apiFetch(endpoint, {
                 method: 'POST',
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify(body)
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Erro ao processar');
@@ -757,10 +768,13 @@ document.addEventListener('DOMContentLoaded', () => {
         addUserSubmit.disabled = true;
         addUserSubmit.innerHTML = '<span>Criando...</span>';
 
+        const fullName = document.getElementById('newUserFullName').value.trim();
+        const userEmail = document.getElementById('newUserEmail').value.trim();
+
         try {
             const res = await apiFetch('/auth/users', {
                 method: 'POST',
-                body: JSON.stringify({ username, password, role })
+                body: JSON.stringify({ username, password, role, email: userEmail, full_name: fullName })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Erro');

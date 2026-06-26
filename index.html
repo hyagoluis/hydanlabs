@@ -512,6 +512,14 @@
                 <p class="modal-subtitle">Entre com suas credenciais</p>
             </div>
             <form id="loginForm" class="modal-form">
+                <div class="form-group register-field" style="display:none">
+                    <label for="regName">Nome completo</label>
+                    <input type="text" id="regName" autocomplete="name" placeholder="Ex: João Silva">
+                </div>
+                <div class="form-group register-field" style="display:none">
+                    <label for="regEmail">E-mail</label>
+                    <input type="email" id="regEmail" autocomplete="email" placeholder="joao@email.com">
+                </div>
                 <div class="form-group">
                     <label for="loginUser">Usuário</label>
                     <input type="text" id="loginUser" autocomplete="username" required placeholder="Usuário">
@@ -571,6 +579,14 @@
                 <div class="form-group">
                     <label for="newUserName">Nome de usuário</label>
                     <input type="text" id="newUserName" autocomplete="off" required placeholder="Ex: joao">
+                </div>
+                <div class="form-group">
+                    <label for="newUserFullName">Nome completo</label>
+                    <input type="text" id="newUserFullName" autocomplete="off" placeholder="Ex: João Silva">
+                </div>
+                <div class="form-group">
+                    <label for="newUserEmail">E-mail</label>
+                    <input type="email" id="newUserEmail" autocomplete="off" placeholder="joao@email.com">
                 </div>
                 <div class="form-group">
                     <label for="newUserPass">Senha</label>
